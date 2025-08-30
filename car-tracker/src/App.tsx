@@ -6,7 +6,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { theme } from './theme';
 import Navigation from './components/Navigation';
 import AdminNavigation from './components/AdminNavigation';
-import { DataMigrationDialog, useMigrationCheck } from './components/DataMigration';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Cars from './pages/Cars';
@@ -45,7 +44,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
-  const { needsMigration, setNeedsMigration } = useMigrationCheck();
 
   if (loading) {
     return <LoadingScreen />;
@@ -142,14 +140,6 @@ const AppRoutes: React.FC = () => {
           element={<Navigate to="/" />}
         />
       </Routes>
-
-      {/* Data Migration Dialog - only for regular users */}
-      {user && !user.isAdmin && (
-        <DataMigrationDialog
-          open={needsMigration}
-          onClose={() => setNeedsMigration(false)}
-        />
-      )}
     </>
   );
 };
