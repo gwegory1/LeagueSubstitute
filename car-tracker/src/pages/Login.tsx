@@ -162,16 +162,6 @@ const Login: React.FC = () => {
                             </Link>
                         </Box>
                     </Box>
-
-                    {/* Development helper */}
-                    <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                            💡 Development Note: If Firebase is not configured, the app will use localStorage for testing.
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                            For production use, configure Firebase using the FIREBASE_SETUP.md guide.
-                        </Typography>
-                    </Box>
                 </Paper>
             </Box>
         </Container>

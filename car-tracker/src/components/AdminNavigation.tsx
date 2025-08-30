@@ -1,22 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     AppBar,
     Toolbar,
     Typography,
-    Button,
     Box,
-    useTheme,
     IconButton,
+    Avatar,
+    Menu,
+    MenuItem,
+    ListItemIcon,
+    Divider,
 } from '@mui/material';
 import {
     AdminPanelSettings as AdminIcon,
     Logout as LogoutIcon,
+    AccountCircle,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const AdminNavigation: React.FC = () => {
     const { logout, user } = useAuth();
-    const theme = useTheme();
+    const navigate = useNavigate();
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
     const handleLogout = async () => {
         try {
@@ -24,6 +30,29 @@ const AdminNavigation: React.FC = () => {
         } catch (error) {
             console.error('Logout error:', error);
         }
+    };
+
+    const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleUserMenuClose = () => {
+        setAnchorEl(null);
+    };
+
+    const handleProfileClick = () => {
+        navigate('/profile');
+        handleUserMenuClose();
+    };
+
+    const handleDashboardClick = () => {
+        navigate('/admin');
+        handleUserMenuClose();
+    };
+
+    const handleLogoutClick = () => {
+        handleLogout();
+        handleUserMenuClose();
     };
 
     return (
@@ -47,18 +76,58 @@ const AdminNavigation: React.FC = () => {
                         Welcome, {user?.displayName || 'Admin'}
                     </Typography>
                     <IconButton
+                        size="large"
+                        aria-label="account of current user"
+                        aria-controls="menu-appbar"
+                        aria-haspopup="true"
+                        onClick={handleUserMenuOpen}
                         color="inherit"
-                        onClick={handleLogout}
                         sx={{
                             '&:hover': {
                                 backgroundColor: 'rgba(255, 69, 0, 0.1)',
                             },
                         }}
                     >
-                        <LogoutIcon />
+                        <AccountCircle />
                     </IconButton>
                 </Box>
             </Toolbar>
+
+            <Menu
+                id="menu-appbar"
+                anchorEl={anchorEl}
+                anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                }}
+                keepMounted
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                }}
+                open={Boolean(anchorEl)}
+                onClose={handleUserMenuClose}
+            >
+                <MenuItem onClick={handleDashboardClick}>
+                    <ListItemIcon>
+                        <AdminIcon fontSize="small" />
+                    </ListItemIcon>
+                    Dashboard
+                </MenuItem>
+                <MenuItem onClick={handleProfileClick}>
+                    <ListItemIcon>
+                        <AccountCircle fontSize="small" />
+                    </ListItemIcon>
+                    Profile
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={handleLogoutClick}>
+                    <ListItemIcon>
+                        <LogoutIcon fontSize="small" />
+                    </ListItemIcon>
+                    Logout
+                </MenuItem>
+            </Menu>
         </AppBar>
     );
 };

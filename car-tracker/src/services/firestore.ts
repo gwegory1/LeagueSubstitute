@@ -381,3 +381,14 @@ export const firestoreListeners = {
         });
     }
 };
+
+// Profile operations
+export const updateUserProfile = async (userId: string, updates: Partial<Pick<User, 'displayName' | 'email'>>): Promise<void> => {
+    const userRef = doc(db, 'users', userId);
+    const updateData = {
+        ...updates,
+        updatedAt: Timestamp.now()
+    };
+
+    await updateDoc(userRef, updateData);
+};

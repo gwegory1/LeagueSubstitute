@@ -6,7 +6,7 @@ import {
     onAuthStateChanged,
     updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { User, AuthContextType } from '../types';
 
@@ -83,6 +83,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                             displayName: userData.displayName || firebaseUser.displayName || '',
                             createdAt: userData.createdAt?.toDate() || new Date(),
                             isAdmin: userData.isAdmin || false
+                        });
+
+                        // Set up real-time listener for user data changes
+                        const userDocRef = doc(db, 'users', firebaseUser.uid);
+                        onSnapshot(userDocRef, (doc) => {
+                            if (doc.exists()) {
+                                const userData = doc.data();
+                                setUser(prevUser => ({
+                                    ...prevUser!,
+                                    displayName: userData.displayName || firebaseUser.displayName || '',
+                                    email: userData.email || firebaseUser.email!,
+                                    isAdmin: userData.isAdmin || false
+                                }));
+                            }
                         });
                     } else {
                         console.log('📝 Creating new user document in Firestore');

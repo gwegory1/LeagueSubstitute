@@ -3,12 +3,12 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCGr2UWg6mopAvvOZ4inYCb0pdWNL8c90A",
-  authDomain: "leaguesubstitute-d1bbf.firebaseapp.com",
-  projectId: "leaguesubstitute-d1bbf",
-  storageBucket: "leaguesubstitute-d1bbf.firebasestorage.app",
-  messagingSenderId: "1003391527558",
-  appId: "1:1003391527558:web:a2497e4fe420fe0703bf07"
+    apiKey: "AIzaSyCGr2UWg6mopAvvOZ4inYCb0pdWNL8c90A",
+    authDomain: "leaguesubstitute-d1bbf.firebaseapp.com",
+    projectId: "leaguesubstitute-d1bbf",
+    storageBucket: "leaguesubstitute-d1bbf.firebasestorage.app",
+    messagingSenderId: "1003391527558",
+    appId: "1:1003391527558:web:a2497e4fe420fe0703bf07"
 };
 
 // Initialize Firebase

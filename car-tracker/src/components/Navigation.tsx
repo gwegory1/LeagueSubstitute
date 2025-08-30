@@ -10,7 +10,6 @@ import {
     ListItemIcon,
     ListItemText,
     Box,
-    Avatar,
     Menu,
     MenuItem,
     Divider,
@@ -53,6 +52,11 @@ const Navigation: React.FC = () => {
 
     const handleUserMenuClose = () => {
         setAnchorEl(null);
+    };
+
+    const handleProfileClick = () => {
+        navigate('/profile');
+        handleUserMenuClose();
     };
 
     const handleLogout = async () => {
@@ -153,11 +157,7 @@ const Navigation: React.FC = () => {
                                 onClick={handleUserMenuOpen}
                                 color="inherit"
                             >
-                                {user.photoURL ? (
-                                    <Avatar src={user.photoURL} sx={{ width: 32, height: 32 }} />
-                                ) : (
-                                    <AccountCircle />
-                                )}
+                                <AccountCircle />
                             </IconButton>
                         </Box>
                     )}
@@ -190,7 +190,7 @@ const Navigation: React.FC = () => {
                 open={Boolean(anchorEl)}
                 onClose={handleUserMenuClose}
             >
-                <MenuItem onClick={handleUserMenuClose}>
+                <MenuItem onClick={handleProfileClick}>
                     <ListItemIcon>
                         <AccountCircle fontSize="small" />
                     </ListItemIcon>

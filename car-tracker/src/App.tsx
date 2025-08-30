@@ -12,6 +12,7 @@ import Register from './pages/Register';
 import Cars from './pages/Cars';
 import Maintenance from './pages/Maintenance';
 import Projects from './pages/Projects';
+import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 
 const LoadingScreen: React.FC = () => (
@@ -72,6 +73,15 @@ const AppRoutes: React.FC = () => {
           }
         />
         <Route
+          path="/profile"
+          element={
+            <>
+              <AdminNavigation />
+              <Profile />
+            </>
+          }
+        />
+        <Route
           path="/*"
           element={<Navigate to="/admin" />}
         />
@@ -115,6 +125,15 @@ const AppRoutes: React.FC = () => {
             <ProtectedRoute>
               <Navigation />
               <Projects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Navigation />
+              <Profile />
             </ProtectedRoute>
           }
         />
