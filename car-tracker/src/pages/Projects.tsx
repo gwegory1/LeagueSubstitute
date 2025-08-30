@@ -89,20 +89,31 @@ const Projects: React.FC = () => {
     }, [user]);
 
     const loadProjects = () => {
+        if (!user) {
+            setProjects([]);
+            setLoading(false);
+            return;
+        }
+
         try {
-            const storedProjects = localStorage.getItem('projects');
+            // Use user-specific storage key
+            const userProjectsKey = `mockProjects_${user.id}`;
+            const storedProjects = localStorage.getItem(userProjectsKey);
+            
             if (storedProjects) {
-                const allProjects = JSON.parse(storedProjects);
-                const userProjects = allProjects.filter((project: any) => project.userId === user?.id)
-                    .map((project: any) => ({
-                        ...project,
-                        startDate: project.startDate ? new Date(project.startDate) : undefined,
-                        targetDate: project.targetDate ? new Date(project.targetDate) : undefined,
-                        completedDate: project.completedDate ? new Date(project.completedDate) : undefined,
-                        createdAt: new Date(project.createdAt),
-                        updatedAt: new Date(project.updatedAt),
-                    }));
-                setProjects(userProjects.sort((a: Project, b: Project) =>
+                const userProjects = JSON.parse(storedProjects).map((project: any) => ({
+                    ...project,
+                    startDate: project.startDate ? new Date(project.startDate) : undefined,
+                    targetDate: project.targetDate ? new Date(project.targetDate) : undefined,
+                    completedDate: project.completedDate ? new Date(project.completedDate) : undefined,
+                    createdAt: new Date(project.createdAt),
+                    updatedAt: new Date(project.updatedAt),
+                }));
+                
+                // Additional filter to ensure all projects belong to current user
+                const filteredProjects = userProjects.filter((project: Project) => project.userId === user.id);
+                
+                setProjects(filteredProjects.sort((a: Project, b: Project) =>
                     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                 ));
             } else {
@@ -110,10 +121,25 @@ const Projects: React.FC = () => {
             }
             setLoading(false);
         } catch (error) {
-            console.error('Error loading projects:', error);
+            console.error('Error loading user projects:', error);
             setProjects([]);
             setLoading(false);
         }
+    };
+
+    const saveProjectsToStorage = (updatedProjects: Project[]) => {
+        if (!user) return;
+        
+        // Save projects with user-specific key
+        const userProjectsKey = `mockProjects_${user.id}`;
+        
+        // Ensure all projects belong to the current user
+        const userProjects = updatedProjects.filter(project => project.userId === user.id);
+        
+        localStorage.setItem(userProjectsKey, JSON.stringify(userProjects));
+        setProjects(userProjects.sort((a: Project, b: Project) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ));
     };
 
     const resetForm = () => {
@@ -178,29 +204,26 @@ const Projects: React.FC = () => {
                 updatedAt: new Date(),
             };
 
-            // Get existing projects from localStorage
-            const storedProjects = localStorage.getItem('projects');
-            let allProjects = storedProjects ? JSON.parse(storedProjects) : [];
-
             if (editingProject) {
-                // Update existing project
-                const projectIndex = allProjects.findIndex((p: any) => p.id === editingProject.id);
-                if (projectIndex !== -1) {
-                    allProjects[projectIndex] = { ...editingProject, ...projectData };
-                }
+                // Update existing project (ensure user owns it)
+                const updatedProjects = projects.map(project =>
+                    project.id === editingProject.id && project.userId === user.id
+                        ? { ...project, ...projectData }
+                        : project
+                );
+                saveProjectsToStorage(updatedProjects);
             } else {
                 // Add new project
-                const newProject = {
+                const newProject: Project = {
                     ...projectData,
-                    id: Date.now().toString(),
+                    id: `project-${user.id}-${Date.now()}`, // Include user ID for uniqueness
                     createdAt: new Date(),
-                };
-                allProjects.push(newProject);
+                } as Project;
+                
+                const updatedProjects = [newProject, ...projects];
+                saveProjectsToStorage(updatedProjects);
             }
 
-            // Save back to localStorage
-            localStorage.setItem('projects', JSON.stringify(allProjects));
-            loadProjects(); // Reload projects
             handleCloseDialog();
         } catch (error: any) {
             setError(error.message || 'Failed to save project');
@@ -225,18 +248,13 @@ const Projects: React.FC = () => {
     };
 
     const handleDelete = async () => {
-        if (selectedProject) {
+        if (selectedProject && user) {
             try {
-                // Get existing projects from localStorage
-                const storedProjects = localStorage.getItem('projects');
-                let allProjects = storedProjects ? JSON.parse(storedProjects) : [];
-
-                // Remove the project
-                allProjects = allProjects.filter((p: any) => p.id !== selectedProject.id);
-
-                // Save back to localStorage
-                localStorage.setItem('projects', JSON.stringify(allProjects));
-                loadProjects(); // Reload projects
+                // Only delete projects that belong to the current user
+                const updatedProjects = projects.filter(project => 
+                    !(project.id === selectedProject.id && project.userId === user.id)
+                );
+                saveProjectsToStorage(updatedProjects);
             } catch (error: any) {
                 setError(error.message || 'Failed to delete project');
             }
@@ -245,31 +263,28 @@ const Projects: React.FC = () => {
     };
 
     const updateProjectStatus = async (project: Project, newStatus: ProjectStatus) => {
+        if (!user) return;
+        
         try {
-            // Get existing projects from localStorage
-            const storedProjects = localStorage.getItem('projects');
-            let allProjects = storedProjects ? JSON.parse(storedProjects) : [];
-
             const updateData: any = {
                 status: newStatus,
                 updatedAt: new Date(),
             };
 
-            if (newStatus === 'completed' && !project.completedDate) {
+            // If marking as completed, set completion date
+            if (newStatus === 'completed') {
                 updateData.completedDate = new Date();
-            } else if (newStatus !== 'completed') {
-                updateData.completedDate = null;
+            } else if (newStatus === 'in_progress' && !project.startDate) {
+                updateData.startDate = new Date();
             }
 
-            // Update the project
-            const projectIndex = allProjects.findIndex((p: any) => p.id === project.id);
-            if (projectIndex !== -1) {
-                allProjects[projectIndex] = { ...allProjects[projectIndex], ...updateData };
-
-                // Save back to localStorage
-                localStorage.setItem('projects', JSON.stringify(allProjects));
-                loadProjects(); // Reload projects
-            }
+            const updatedProjects = projects.map(p =>
+                p.id === project.id && p.userId === user.id // Ensure user owns the project
+                    ? { ...p, ...updateData }
+                    : p
+            );
+            
+            saveProjectsToStorage(updatedProjects);
         } catch (error: any) {
             setError(error.message || 'Failed to update project status');
         }

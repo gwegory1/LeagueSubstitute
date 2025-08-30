@@ -85,8 +85,10 @@ const Maintenance: React.FC = () => {
             return;
         }
 
-        // Load from localStorage
-        const savedMaintenance = localStorage.getItem('mockMaintenance');
+        // Load user-specific maintenance data
+        const userMaintenanceKey = `mockMaintenance_${user.id}`;
+        const savedMaintenance = localStorage.getItem(userMaintenanceKey);
+        
         if (savedMaintenance) {
             try {
                 const parsedMaintenance = JSON.parse(savedMaintenance).map((record: any) => ({
@@ -96,17 +98,32 @@ const Maintenance: React.FC = () => {
                     createdAt: new Date(record.createdAt),
                     updatedAt: new Date(record.updatedAt),
                 }));
-                setMaintenance(parsedMaintenance);
+                
+                // Filter to ensure we only show maintenance records belonging to this user
+                const userMaintenance = parsedMaintenance.filter((record: MaintenanceRecord) => record.userId === user.id);
+                setMaintenance(userMaintenance);
             } catch (error) {
+                console.error('Error loading user maintenance:', error);
                 setMaintenance([]);
             }
+        } else {
+            // No saved maintenance for this user
+            setMaintenance([]);
         }
         setLoading(false);
     }, [user]);
 
     const saveMaintenanceToStorage = (updatedMaintenance: MaintenanceRecord[]) => {
-        localStorage.setItem('mockMaintenance', JSON.stringify(updatedMaintenance));
-        setMaintenance(updatedMaintenance);
+        if (!user) return;
+        
+        // Save maintenance with user-specific key
+        const userMaintenanceKey = `mockMaintenance_${user.id}`;
+        
+        // Ensure all maintenance records belong to the current user
+        const userMaintenance = updatedMaintenance.filter(record => record.userId === user.id);
+        
+        localStorage.setItem(userMaintenanceKey, JSON.stringify(userMaintenance));
+        setMaintenance(userMaintenance);
     };
 
     const resetForm = () => {
@@ -162,9 +179,9 @@ const Maintenance: React.FC = () => {
 
         try {
             if (editingRecord) {
-                // Update existing record
+                // Update existing record (ensure user owns it)
                 const updatedMaintenance = maintenance.map(record =>
-                    record.id === editingRecord.id
+                    record.id === editingRecord.id && record.userId === user.id
                         ? {
                             ...record,
                             ...formData,
@@ -180,7 +197,7 @@ const Maintenance: React.FC = () => {
                 // Add new record
                 const newRecord: MaintenanceRecord = {
                     ...formData,
-                    id: `maintenance-${Date.now()}`,
+                    id: `maintenance-${user.id}-${Date.now()}`, // Include user ID for uniqueness
                     date: new Date(formData.date),
                     nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate) : undefined,
                     nextDueMileage: formData.nextDueMileage ? parseInt(formData.nextDueMileage) : undefined,
@@ -215,9 +232,12 @@ const Maintenance: React.FC = () => {
     };
 
     const handleDelete = async () => {
-        if (selectedRecord) {
+        if (selectedRecord && user) {
             try {
-                const updatedMaintenance = maintenance.filter(record => record.id !== selectedRecord.id);
+                // Only delete maintenance records that belong to the current user
+                const updatedMaintenance = maintenance.filter(record => 
+                    !(record.id === selectedRecord.id && record.userId === user.id)
+                );
                 saveMaintenanceToStorage(updatedMaintenance);
             } catch (error: any) {
                 setError(error.message || 'Failed to delete maintenance record');
@@ -227,9 +247,11 @@ const Maintenance: React.FC = () => {
     };
 
     const toggleCompleted = async (record: MaintenanceRecord) => {
+        if (!user) return;
+        
         try {
             const updatedMaintenance = maintenance.map(maintenanceRecord =>
-                maintenanceRecord.id === record.id
+                maintenanceRecord.id === record.id && maintenanceRecord.userId === user.id // Ensure user owns the record
                     ? {
                         ...maintenanceRecord,
                         completed: !maintenanceRecord.completed,
