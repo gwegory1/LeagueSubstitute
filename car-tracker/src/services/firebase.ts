@@ -2,14 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Firebase configuration - You'll need to replace these with your actual Firebase project values
 const firebaseConfig = {
-    apiKey: "AIzaSyDemoKey-Replace-With-Your-Actual-Key",
-    authDomain: "car-tracker-demo.firebaseapp.com",
-    projectId: "car-tracker-demo",
-    storageBucket: "car-tracker-demo.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcdef123456789012345"
+  apiKey: "AIzaSyCGr2UWg6mopAvvOZ4inYCb0pdWNL8c90A",
+  authDomain: "leaguesubstitute-d1bbf.firebaseapp.com",
+  projectId: "leaguesubstitute-d1bbf",
+  storageBucket: "leaguesubstitute-d1bbf.firebasestorage.app",
+  messagingSenderId: "1003391527558",
+  appId: "1:1003391527558:web:a2497e4fe420fe0703bf07"
 };
 
 // Initialize Firebase

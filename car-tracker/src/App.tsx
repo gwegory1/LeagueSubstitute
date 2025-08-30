@@ -5,12 +5,14 @@ import { CssBaseline, Box, CircularProgress, Typography } from '@mui/material';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { theme } from './theme';
 import Navigation from './components/Navigation';
+import AdminNavigation from './components/AdminNavigation';
 import { DataMigrationDialog, useMigrationCheck } from './components/DataMigration';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Cars from './pages/Cars';
 import Maintenance from './pages/Maintenance';
 import Projects from './pages/Projects';
+import AdminDashboard from './pages/AdminDashboard';
 
 const LoadingScreen: React.FC = () => (
   <Box
@@ -48,6 +50,36 @@ const AppRoutes: React.FC = () => {
     return <LoadingScreen />;
   }
 
+  // Admin routing
+  if (user?.isAdmin) {
+    return (
+      <Routes>
+        <Route
+          path="/login"
+          element={<Navigate to="/admin" />}
+        />
+        <Route
+          path="/register"
+          element={<Navigate to="/admin" />}
+        />
+        <Route
+          path="/admin"
+          element={
+            <>
+              <AdminNavigation />
+              <AdminDashboard />
+            </>
+          }
+        />
+        <Route
+          path="/*"
+          element={<Navigate to="/admin" />}
+        />
+      </Routes>
+    );
+  }
+
+  // Regular user routing
   return (
     <>
       <Routes>
@@ -86,13 +118,19 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin"
+          element={<Navigate to="/" />}
+        />
       </Routes>
-      
-      {/* Data Migration Dialog */}
-      <DataMigrationDialog 
-        open={needsMigration} 
-        onClose={() => setNeedsMigration(false)} 
-      />
+
+      {/* Data Migration Dialog - only for regular users */}
+      {user && !user.isAdmin && (
+        <DataMigrationDialog
+          open={needsMigration}
+          onClose={() => setNeedsMigration(false)}
+        />
+      )}
     </>
   );
 };

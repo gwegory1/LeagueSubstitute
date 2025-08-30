@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Car } from '../types';
+import { MaintenanceRecord } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { firestoreCars, firestoreListeners } from '../services/firestore';
+import { firestoreMaintenance, firestoreListeners } from '../services/firestore';
 import { auth } from '../services/firebase';
 
 // Check if Firebase is properly configured
@@ -17,14 +17,14 @@ const isFirebaseConfigured = () => {
     }
 };
 
-export const useCars = () => {
-    const [cars, setCars] = useState<Car[]>([]);
+export const useMaintenance = () => {
+    const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
 
     useEffect(() => {
         if (!user) {
-            setCars([]);
+            setMaintenance([]);
             setLoading(false);
             return;
         }
@@ -38,13 +38,13 @@ export const useCars = () => {
         setLoading(true);
 
         // Use Firestore for all data
-        console.log('� Using Firebase Firestore for car data');
+        console.log('🔥 Using Firebase Firestore for maintenance data');
 
-        // Set up real-time listener for user's cars
-        const unsubscribe = firestoreListeners.subscribeToUserCars(
+        // Set up real-time listener for user's maintenance records
+        const unsubscribe = firestoreListeners.subscribeToUserMaintenance(
             user.id,
-            (firestoreCars) => {
-                setCars(firestoreCars);
+            (firestoreMaintenance) => {
+                setMaintenance(firestoreMaintenance);
                 setLoading(false);
             }
         );
@@ -53,7 +53,7 @@ export const useCars = () => {
         return () => unsubscribe();
     }, [user]);
 
-    const addCar = async (carData: Omit<Car, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    const addMaintenance = async (maintenanceData: Omit<MaintenanceRecord, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
         if (!user) throw new Error('User not authenticated');
 
         if (!isFirebaseConfigured()) {
@@ -62,15 +62,15 @@ export const useCars = () => {
 
         // Use Firestore for all data
         try {
-            const carId = await firestoreCars.addCar(user.id, carData);
-            console.log('✅ Car added to Firestore:', carId);
+            const maintenanceId = await firestoreMaintenance.addMaintenance(user.id, maintenanceData);
+            console.log('✅ Maintenance record added to Firestore:', maintenanceId);
         } catch (error) {
-            console.error('❌ Error adding car to Firestore:', error);
+            console.error('❌ Error adding maintenance record to Firestore:', error);
             throw error;
         }
     };
 
-    const updateCar = async (carId: string, updates: Partial<Car>) => {
+    const updateMaintenance = async (maintenanceId: string, updates: Partial<MaintenanceRecord>) => {
         if (!user) throw new Error('User not authenticated');
 
         if (!isFirebaseConfigured()) {
@@ -79,15 +79,15 @@ export const useCars = () => {
 
         // Use Firestore for all data
         try {
-            await firestoreCars.updateCar(carId, updates);
-            console.log('✅ Car updated in Firestore:', carId);
+            await firestoreMaintenance.updateMaintenance(maintenanceId, updates);
+            console.log('✅ Maintenance record updated in Firestore:', maintenanceId);
         } catch (error) {
-            console.error('❌ Error updating car in Firestore:', error);
+            console.error('❌ Error updating maintenance record in Firestore:', error);
             throw error;
         }
     };
 
-    const deleteCar = async (carId: string) => {
+    const deleteMaintenance = async (maintenanceId: string) => {
         if (!user) throw new Error('User not authenticated');
 
         if (!isFirebaseConfigured()) {
@@ -96,19 +96,19 @@ export const useCars = () => {
 
         // Use Firestore for all data
         try {
-            await firestoreCars.deleteCar(carId);
-            console.log('✅ Car deleted from Firestore:', carId);
+            await firestoreMaintenance.deleteMaintenance(maintenanceId);
+            console.log('✅ Maintenance record deleted from Firestore:', maintenanceId);
         } catch (error) {
-            console.error('❌ Error deleting car from Firestore:', error);
+            console.error('❌ Error deleting maintenance record from Firestore:', error);
             throw error;
         }
     };
 
     return {
-        cars,
+        maintenance,
         loading,
-        addCar,
-        updateCar,
-        deleteCar,
+        addMaintenance,
+        updateMaintenance,
+        deleteMaintenance,
     };
 };

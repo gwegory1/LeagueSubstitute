@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
-    User as FirebaseUser,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
@@ -28,7 +27,11 @@ interface AuthProviderProps {
 // Check if Firebase is properly configured
 const isFirebaseConfigured = () => {
     try {
-        return auth.app.options.apiKey !== "AIzaSyDemoKey-Replace-With-Your-Actual-Key";
+        const config = auth.app.options;
+        return config.apiKey !== "AIzaSyDemoKey-Replace-With-Your-Actual-Key" &&
+            config.projectId !== "car-tracker-demo" &&
+            config.apiKey &&
+            config.projectId;
     } catch {
         return false;
     }
@@ -38,30 +41,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Debug: Check Firebase configuration on component mount
     useEffect(() => {
-        // Check if Firebase is configured
+        const firebaseConfigured = isFirebaseConfigured();
+        console.log('🔧 Firebase Configuration Status:', firebaseConfigured);
+        if (firebaseConfigured) {
+            console.log('🔥 Firebase Project ID:', auth.app.options.projectId);
+            console.log('🔥 Firebase Auth Domain:', auth.app.options.authDomain);
+        } else {
+            console.error('❌ Firebase not configured! Please check your configuration.');
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Only use Firebase - no localStorage fallback
         if (!isFirebaseConfigured()) {
-            console.warn('Firebase not configured, using localStorage fallback');
-            // Use localStorage fallback for development
-            const savedUser = localStorage.getItem('mockUser');
-            if (savedUser) {
-                try {
-                    const userData = JSON.parse(savedUser);
-                    setUser({
-                        ...userData,
-                        createdAt: new Date(userData.createdAt)
-                    });
-                } catch (error) {
-                    console.error('Error parsing saved user:', error);
-                }
-            }
+            console.error('❌ Firebase not configured properly');
             setLoading(false);
             return;
         }
 
-        // Use real Firebase authentication
+        // Use Firebase authentication for all users (including admin)
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            console.log('🔥 Firebase auth state changed:', firebaseUser ? 'User logged in' : 'User logged out');
+
             if (firebaseUser) {
+                console.log('🔥 Processing Firebase user:', firebaseUser.uid);
                 // User is signed in
                 try {
                     // Get user data from Firestore
@@ -70,43 +76,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     if (userDoc.exists()) {
                         // User document exists in Firestore
                         const userData = userDoc.data();
+                        console.log('✅ User document found in Firestore');
                         setUser({
                             id: firebaseUser.uid,
                             email: firebaseUser.email!,
                             displayName: userData.displayName || firebaseUser.displayName || '',
                             createdAt: userData.createdAt?.toDate() || new Date(),
+                            isAdmin: userData.isAdmin || false
                         });
                     } else {
+                        console.log('📝 Creating new user document in Firestore');
                         // Create user document if it doesn't exist
                         const newUser: User = {
                             id: firebaseUser.uid,
                             email: firebaseUser.email!,
                             displayName: firebaseUser.displayName || '',
                             createdAt: new Date(),
+                            isAdmin: firebaseUser.email === 'admin@admin.com'
                         };
 
                         await setDoc(doc(db, 'users', firebaseUser.uid), {
                             displayName: newUser.displayName,
                             email: newUser.email,
                             createdAt: newUser.createdAt,
+                            isAdmin: newUser.isAdmin
                         });
 
                         setUser(newUser);
                     }
                 } catch (error) {
-                    console.error('Error fetching user data:', error);
+                    console.error('❌ Error fetching user data:', error);
                     // Fallback to Firebase user data
                     setUser({
                         id: firebaseUser.uid,
                         email: firebaseUser.email!,
                         displayName: firebaseUser.displayName || '',
                         createdAt: new Date(),
+                        isAdmin: firebaseUser.email === 'admin@admin.com'
                     });
                 }
             } else {
-                // User is signed out
+                console.log('👋 User signed out');
                 setUser(null);
             }
+            console.log('🔥 Setting loading to false');
             setLoading(false);
         });
 
@@ -117,31 +130,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(true);
         try {
             if (!isFirebaseConfigured()) {
-                // localStorage fallback
-                const savedUsers = JSON.parse(localStorage.getItem('mockUsers') || '[]');
-                const foundUser = savedUsers.find((u: any) => u.email === email && u.password === password);
-
-                if (foundUser) {
-                    const userData = {
-                        id: foundUser.id,
-                        email: foundUser.email,
-                        displayName: foundUser.displayName,
-                        createdAt: new Date(foundUser.createdAt)
-                    };
-                    setUser(userData);
-                    localStorage.setItem('mockUser', JSON.stringify(userData));
-                } else {
-                    throw new Error('Invalid email or password');
-                }
-                setLoading(false);
-                return;
+                throw new Error('Firebase not configured. Please check your configuration.');
             }
 
+            // Use Firebase authentication for all users (including admin)
+            console.log('🔥 Attempting Firebase login for:', email);
             await signInWithEmailAndPassword(auth, email, password);
-            // The onAuthStateChanged listener will handle setting the user
+            console.log('✅ Firebase login successful, waiting for auth state change');
+            // Note: setLoading(false) will be called by onAuthStateChanged listener
         } catch (error: any) {
             setLoading(false);
-            console.error('Login error:', error);
+            console.error('❌ Login error:', error);
             throw error;
         }
     };
@@ -149,46 +148,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const register = async (email: string, password: string, displayName: string): Promise<void> => {
         setLoading(true);
         try {
+            console.log('🔧 Starting registration process for:', email);
+
             if (!isFirebaseConfigured()) {
-                // localStorage fallback
-                const savedUsers = JSON.parse(localStorage.getItem('mockUsers') || '[]');
-
-                // Check if user already exists
-                if (savedUsers.find((u: any) => u.email === email)) {
-                    throw new Error('User already exists with this email');
-                }
-
-                const newUser = {
-                    id: `user-${Date.now()}`,
-                    email,
-                    password,
-                    displayName,
-                    createdAt: new Date().toISOString()
-                };
-
-                savedUsers.push(newUser);
-                localStorage.setItem('mockUsers', JSON.stringify(savedUsers));
-
-                const userData = {
-                    id: newUser.id,
-                    email: newUser.email,
-                    displayName: newUser.displayName,
-                    createdAt: new Date(newUser.createdAt)
-                };
-                setUser(userData);
-                localStorage.setItem('mockUser', JSON.stringify(userData));
-                setLoading(false);
-                return;
+                throw new Error('Firebase not configured. Please check your configuration.');
             }
 
-            // Create user account
+            console.log('🔥 Using Firebase for registration');
+            // Firebase registration for all users
             const result = await createUserWithEmailAndPassword(auth, email, password);
+            console.log('✅ Firebase user created:', result.user.uid);
 
             // Update the user's display name in Firebase Auth
             if (displayName) {
                 await updateProfile(result.user, {
                     displayName: displayName
                 });
+                console.log('✅ Display name updated');
             }
 
             // Create user document in Firestore
@@ -196,24 +172,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 displayName: displayName,
                 email: email,
                 createdAt: new Date(),
+                isAdmin: email === 'admin@admin.com'
             });
+            console.log('✅ User document created in Firestore');
 
-            // The onAuthStateChanged listener will handle setting the user
+            // Set user immediately and stop loading
+            const newUser: User = {
+                id: result.user.uid,
+                email: result.user.email!,
+                displayName: displayName,
+                createdAt: new Date(),
+                isAdmin: email === 'admin@admin.com'
+            };
+            setUser(newUser);
+            setLoading(false);
+            console.log('✅ User set and loading stopped');
+
+            // The onAuthStateChanged listener will also trigger, but user is already set
         } catch (error: any) {
             setLoading(false);
-            console.error('Registration error:', error);
+            console.error('❌ Registration error:', error);
             throw error;
         }
     };
 
     const logout = async () => {
-        if (!isFirebaseConfigured()) {
-            // localStorage fallback
+        try {
+            if (!isFirebaseConfigured()) {
+                throw new Error('Firebase not configured. Please check your configuration.');
+            }
+
+            // Use Firebase signOut for all users
+            console.log('🔥 Signing out from Firebase');
+            await signOut(auth);
+        } catch (error) {
+            console.error('❌ Logout error:', error);
+            // Fallback: clear user state
             setUser(null);
-            localStorage.removeItem('mockUser');
-            return;
         }
-        return await signOut(auth);
     };
 
     const value: AuthContextType = {

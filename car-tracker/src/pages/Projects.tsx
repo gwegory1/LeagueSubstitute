@@ -37,6 +37,7 @@ import {
 import { Project, Priority, ProjectStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useCars } from '../hooks/useCars';
+import { useProjects } from '../hooks/useProjects';
 
 const priorities: { value: Priority; label: string; color: any }[] = [
     { value: 'low', label: 'Low', color: 'default' },
@@ -55,8 +56,7 @@ const statuses: { value: ProjectStatus; label: string; color: any }[] = [
 const Projects: React.FC = () => {
     const { user } = useAuth();
     const { cars } = useCars();
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { projects, loading, addProject, updateProject, deleteProject } = useProjects();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [error, setError] = useState('');
@@ -77,70 +77,6 @@ const Projects: React.FC = () => {
         completedDate: '',
         notes: '',
     });
-
-    useEffect(() => {
-        if (!user) {
-            setProjects([]);
-            setLoading(false);
-            return;
-        }
-
-        loadProjects();
-    }, [user]);
-
-    const loadProjects = () => {
-        if (!user) {
-            setProjects([]);
-            setLoading(false);
-            return;
-        }
-
-        try {
-            // Use user-specific storage key
-            const userProjectsKey = `mockProjects_${user.id}`;
-            const storedProjects = localStorage.getItem(userProjectsKey);
-            
-            if (storedProjects) {
-                const userProjects = JSON.parse(storedProjects).map((project: any) => ({
-                    ...project,
-                    startDate: project.startDate ? new Date(project.startDate) : undefined,
-                    targetDate: project.targetDate ? new Date(project.targetDate) : undefined,
-                    completedDate: project.completedDate ? new Date(project.completedDate) : undefined,
-                    createdAt: new Date(project.createdAt),
-                    updatedAt: new Date(project.updatedAt),
-                }));
-                
-                // Additional filter to ensure all projects belong to current user
-                const filteredProjects = userProjects.filter((project: Project) => project.userId === user.id);
-                
-                setProjects(filteredProjects.sort((a: Project, b: Project) =>
-                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                ));
-            } else {
-                setProjects([]);
-            }
-            setLoading(false);
-        } catch (error) {
-            console.error('Error loading user projects:', error);
-            setProjects([]);
-            setLoading(false);
-        }
-    };
-
-    const saveProjectsToStorage = (updatedProjects: Project[]) => {
-        if (!user) return;
-        
-        // Save projects with user-specific key
-        const userProjectsKey = `mockProjects_${user.id}`;
-        
-        // Ensure all projects belong to the current user
-        const userProjects = updatedProjects.filter(project => project.userId === user.id);
-        
-        localStorage.setItem(userProjectsKey, JSON.stringify(userProjects));
-        setProjects(userProjects.sort((a: Project, b: Project) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        ));
-    };
 
     const resetForm = () => {
         setFormData({
@@ -196,32 +132,20 @@ const Projects: React.FC = () => {
         try {
             const projectData = {
                 ...formData,
-                actualCost: formData.actualCost ? parseFloat(formData.actualCost) : undefined,
+                actualCost: formData.actualCost && formData.actualCost.trim() !== ''
+                    ? parseFloat(formData.actualCost)
+                    : undefined,
                 startDate: formData.startDate ? new Date(formData.startDate) : undefined,
                 targetDate: formData.targetDate ? new Date(formData.targetDate) : undefined,
                 completedDate: formData.completedDate ? new Date(formData.completedDate) : undefined,
-                userId: user.id,
-                updatedAt: new Date(),
             };
 
             if (editingProject) {
-                // Update existing project (ensure user owns it)
-                const updatedProjects = projects.map(project =>
-                    project.id === editingProject.id && project.userId === user.id
-                        ? { ...project, ...projectData }
-                        : project
-                );
-                saveProjectsToStorage(updatedProjects);
+                // Update existing project
+                await updateProject(editingProject.id, projectData);
             } else {
                 // Add new project
-                const newProject: Project = {
-                    ...projectData,
-                    id: `project-${user.id}-${Date.now()}`, // Include user ID for uniqueness
-                    createdAt: new Date(),
-                } as Project;
-                
-                const updatedProjects = [newProject, ...projects];
-                saveProjectsToStorage(updatedProjects);
+                await addProject(projectData);
             }
 
             handleCloseDialog();
@@ -250,11 +174,7 @@ const Projects: React.FC = () => {
     const handleDelete = async () => {
         if (selectedProject && user) {
             try {
-                // Only delete projects that belong to the current user
-                const updatedProjects = projects.filter(project => 
-                    !(project.id === selectedProject.id && project.userId === user.id)
-                );
-                saveProjectsToStorage(updatedProjects);
+                await deleteProject(selectedProject.id);
             } catch (error: any) {
                 setError(error.message || 'Failed to delete project');
             }
@@ -264,11 +184,10 @@ const Projects: React.FC = () => {
 
     const updateProjectStatus = async (project: Project, newStatus: ProjectStatus) => {
         if (!user) return;
-        
+
         try {
             const updateData: any = {
                 status: newStatus,
-                updatedAt: new Date(),
             };
 
             // If marking as completed, set completion date
@@ -278,13 +197,7 @@ const Projects: React.FC = () => {
                 updateData.startDate = new Date();
             }
 
-            const updatedProjects = projects.map(p =>
-                p.id === project.id && p.userId === user.id // Ensure user owns the project
-                    ? { ...p, ...updateData }
-                    : p
-            );
-            
-            saveProjectsToStorage(updatedProjects);
+            await updateProject(project.id, updateData);
         } catch (error: any) {
             setError(error.message || 'Failed to update project status');
         }
