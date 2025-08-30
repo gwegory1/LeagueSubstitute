@@ -44,7 +44,11 @@ export const DataMigrationDialog: React.FC<DataMigrationProps> = ({ open, onClos
             }
 
             setMigrated(true);
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> 6a8fc1962a495de9041d3f9c8ca93c87728dd843
             // Reload the page to reflect changes
             setTimeout(() => {
                 window.location.reload();
@@ -77,7 +81,11 @@ export const DataMigrationDialog: React.FC<DataMigrationProps> = ({ open, onClos
                         </Alert>
                     </Box>
                 )}
+<<<<<<< HEAD
 
+=======
+                
+>>>>>>> 6a8fc1962a495de9041d3f9c8ca93c87728dd843
                 {error && (
                     <Alert severity="error" sx={{ mt: 2 }}>
                         {error}

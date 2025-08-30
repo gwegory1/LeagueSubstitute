@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Car } from '../types';
+import { Project } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { firestoreCars, firestoreListeners } from '../services/firestore';
+import { firestoreProjects, firestoreListeners } from '../services/firestore';
 import { auth } from '../services/firebase';
 
 // Check if Firebase is properly configured
@@ -17,14 +17,14 @@ const isFirebaseConfigured = () => {
     }
 };
 
-export const useCars = () => {
-    const [cars, setCars] = useState<Car[]>([]);
+export const useProjects = () => {
+    const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
 
     useEffect(() => {
         if (!user) {
-            setCars([]);
+            setProjects([]);
             setLoading(false);
             return;
         }
@@ -38,13 +38,13 @@ export const useCars = () => {
         setLoading(true);
 
         // Use Firestore for all data
-        console.log('� Using Firebase Firestore for car data');
+        console.log('🔥 Using Firebase Firestore for projects data');
 
-        // Set up real-time listener for user's cars
-        const unsubscribe = firestoreListeners.subscribeToUserCars(
+        // Set up real-time listener for user's projects
+        const unsubscribe = firestoreListeners.subscribeToUserProjects(
             user.id,
-            (firestoreCars) => {
-                setCars(firestoreCars);
+            (firestoreProjects) => {
+                setProjects(firestoreProjects);
                 setLoading(false);
             }
         );
@@ -53,7 +53,7 @@ export const useCars = () => {
         return () => unsubscribe();
     }, [user]);
 
-    const addCar = async (carData: Omit<Car, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    const addProject = async (projectData: Omit<Project, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
         if (!user) throw new Error('User not authenticated');
 
         if (!isFirebaseConfigured()) {
@@ -62,15 +62,15 @@ export const useCars = () => {
 
         // Use Firestore for all data
         try {
-            const carId = await firestoreCars.addCar(user.id, carData);
-            console.log('✅ Car added to Firestore:', carId);
+            const projectId = await firestoreProjects.addProject(user.id, projectData);
+            console.log('✅ Project added to Firestore:', projectId);
         } catch (error) {
-            console.error('❌ Error adding car to Firestore:', error);
+            console.error('❌ Error adding project to Firestore:', error);
             throw error;
         }
     };
 
-    const updateCar = async (carId: string, updates: Partial<Car>) => {
+    const updateProject = async (projectId: string, updates: Partial<Project>) => {
         if (!user) throw new Error('User not authenticated');
 
         if (!isFirebaseConfigured()) {
@@ -79,15 +79,15 @@ export const useCars = () => {
 
         // Use Firestore for all data
         try {
-            await firestoreCars.updateCar(carId, updates);
-            console.log('✅ Car updated in Firestore:', carId);
+            await firestoreProjects.updateProject(projectId, updates);
+            console.log('✅ Project updated in Firestore:', projectId);
         } catch (error) {
-            console.error('❌ Error updating car in Firestore:', error);
+            console.error('❌ Error updating project in Firestore:', error);
             throw error;
         }
     };
 
-    const deleteCar = async (carId: string) => {
+    const deleteProject = async (projectId: string) => {
         if (!user) throw new Error('User not authenticated');
 
         if (!isFirebaseConfigured()) {
@@ -96,19 +96,19 @@ export const useCars = () => {
 
         // Use Firestore for all data
         try {
-            await firestoreCars.deleteCar(carId);
-            console.log('✅ Car deleted from Firestore:', carId);
+            await firestoreProjects.deleteProject(projectId);
+            console.log('✅ Project deleted from Firestore:', projectId);
         } catch (error) {
-            console.error('❌ Error deleting car from Firestore:', error);
+            console.error('❌ Error deleting project from Firestore:', error);
             throw error;
         }
     };
 
     return {
-        cars,
+        projects,
         loading,
-        addCar,
-        updateCar,
-        deleteCar,
+        addProject,
+        updateProject,
+        deleteProject,
     };
 };

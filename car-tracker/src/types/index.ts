@@ -54,6 +54,7 @@ export interface User {
     displayName: string;
     photoURL?: string;
     createdAt: Date;
+    isAdmin?: boolean;
 }
 
 export type MaintenanceType =

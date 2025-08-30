@@ -37,6 +37,7 @@ import {
 import { Project, Priority, ProjectStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useCars } from '../hooks/useCars';
+import { useProjects } from '../hooks/useProjects';
 
 const priorities: { value: Priority; label: string; color: any }[] = [
     { value: 'low', label: 'Low', color: 'default' },
@@ -55,8 +56,7 @@ const statuses: { value: ProjectStatus; label: string; color: any }[] = [
 const Projects: React.FC = () => {
     const { user } = useAuth();
     const { cars } = useCars();
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { projects, loading, addProject, updateProject, deleteProject } = useProjects();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [error, setError] = useState('');
@@ -77,44 +77,6 @@ const Projects: React.FC = () => {
         completedDate: '',
         notes: '',
     });
-
-    useEffect(() => {
-        if (!user) {
-            setProjects([]);
-            setLoading(false);
-            return;
-        }
-
-        loadProjects();
-    }, [user]);
-
-    const loadProjects = () => {
-        try {
-            const storedProjects = localStorage.getItem('projects');
-            if (storedProjects) {
-                const allProjects = JSON.parse(storedProjects);
-                const userProjects = allProjects.filter((project: any) => project.userId === user?.id)
-                    .map((project: any) => ({
-                        ...project,
-                        startDate: project.startDate ? new Date(project.startDate) : undefined,
-                        targetDate: project.targetDate ? new Date(project.targetDate) : undefined,
-                        completedDate: project.completedDate ? new Date(project.completedDate) : undefined,
-                        createdAt: new Date(project.createdAt),
-                        updatedAt: new Date(project.updatedAt),
-                    }));
-                setProjects(userProjects.sort((a: Project, b: Project) =>
-                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                ));
-            } else {
-                setProjects([]);
-            }
-            setLoading(false);
-        } catch (error) {
-            console.error('Error loading projects:', error);
-            setProjects([]);
-            setLoading(false);
-        }
-    };
 
     const resetForm = () => {
         setFormData({
@@ -170,37 +132,22 @@ const Projects: React.FC = () => {
         try {
             const projectData = {
                 ...formData,
-                actualCost: formData.actualCost ? parseFloat(formData.actualCost) : undefined,
+                actualCost: formData.actualCost && formData.actualCost.trim() !== ''
+                    ? parseFloat(formData.actualCost)
+                    : undefined,
                 startDate: formData.startDate ? new Date(formData.startDate) : undefined,
                 targetDate: formData.targetDate ? new Date(formData.targetDate) : undefined,
                 completedDate: formData.completedDate ? new Date(formData.completedDate) : undefined,
-                userId: user.id,
-                updatedAt: new Date(),
             };
-
-            // Get existing projects from localStorage
-            const storedProjects = localStorage.getItem('projects');
-            let allProjects = storedProjects ? JSON.parse(storedProjects) : [];
 
             if (editingProject) {
                 // Update existing project
-                const projectIndex = allProjects.findIndex((p: any) => p.id === editingProject.id);
-                if (projectIndex !== -1) {
-                    allProjects[projectIndex] = { ...editingProject, ...projectData };
-                }
+                await updateProject(editingProject.id, projectData);
             } else {
                 // Add new project
-                const newProject = {
-                    ...projectData,
-                    id: Date.now().toString(),
-                    createdAt: new Date(),
-                };
-                allProjects.push(newProject);
+                await addProject(projectData);
             }
 
-            // Save back to localStorage
-            localStorage.setItem('projects', JSON.stringify(allProjects));
-            loadProjects(); // Reload projects
             handleCloseDialog();
         } catch (error: any) {
             setError(error.message || 'Failed to save project');
@@ -225,18 +172,9 @@ const Projects: React.FC = () => {
     };
 
     const handleDelete = async () => {
-        if (selectedProject) {
+        if (selectedProject && user) {
             try {
-                // Get existing projects from localStorage
-                const storedProjects = localStorage.getItem('projects');
-                let allProjects = storedProjects ? JSON.parse(storedProjects) : [];
-
-                // Remove the project
-                allProjects = allProjects.filter((p: any) => p.id !== selectedProject.id);
-
-                // Save back to localStorage
-                localStorage.setItem('projects', JSON.stringify(allProjects));
-                loadProjects(); // Reload projects
+                await deleteProject(selectedProject.id);
             } catch (error: any) {
                 setError(error.message || 'Failed to delete project');
             }
@@ -245,31 +183,21 @@ const Projects: React.FC = () => {
     };
 
     const updateProjectStatus = async (project: Project, newStatus: ProjectStatus) => {
-        try {
-            // Get existing projects from localStorage
-            const storedProjects = localStorage.getItem('projects');
-            let allProjects = storedProjects ? JSON.parse(storedProjects) : [];
+        if (!user) return;
 
+        try {
             const updateData: any = {
                 status: newStatus,
-                updatedAt: new Date(),
             };
 
-            if (newStatus === 'completed' && !project.completedDate) {
+            // If marking as completed, set completion date
+            if (newStatus === 'completed') {
                 updateData.completedDate = new Date();
-            } else if (newStatus !== 'completed') {
-                updateData.completedDate = null;
+            } else if (newStatus === 'in_progress' && !project.startDate) {
+                updateData.startDate = new Date();
             }
 
-            // Update the project
-            const projectIndex = allProjects.findIndex((p: any) => p.id === project.id);
-            if (projectIndex !== -1) {
-                allProjects[projectIndex] = { ...allProjects[projectIndex], ...updateData };
-
-                // Save back to localStorage
-                localStorage.setItem('projects', JSON.stringify(allProjects));
-                loadProjects(); // Reload projects
-            }
+            await updateProject(project.id, updateData);
         } catch (error: any) {
             setError(error.message || 'Failed to update project status');
         }

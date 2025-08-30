@@ -37,6 +37,7 @@ import {
 import { MaintenanceRecord, MaintenanceType } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useCars } from '../hooks/useCars';
+import { useMaintenance } from '../hooks/useMaintenance';
 
 const maintenanceTypes: { value: MaintenanceType; label: string }[] = [
     { value: 'oil_change', label: 'Oil Change' },
@@ -55,8 +56,7 @@ const maintenanceTypes: { value: MaintenanceType; label: string }[] = [
 const Maintenance: React.FC = () => {
     const { user } = useAuth();
     const { cars } = useCars();
-    const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { maintenance, loading, addMaintenance, updateMaintenance, deleteMaintenance } = useMaintenance();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
     const [error, setError] = useState('');
@@ -77,37 +77,6 @@ const Maintenance: React.FC = () => {
         nextDueMileage: '',
         completed: false,
     });
-
-    useEffect(() => {
-        if (!user) {
-            setMaintenance([]);
-            setLoading(false);
-            return;
-        }
-
-        // Load from localStorage
-        const savedMaintenance = localStorage.getItem('mockMaintenance');
-        if (savedMaintenance) {
-            try {
-                const parsedMaintenance = JSON.parse(savedMaintenance).map((record: any) => ({
-                    ...record,
-                    date: new Date(record.date),
-                    nextDueDate: record.nextDueDate ? new Date(record.nextDueDate) : undefined,
-                    createdAt: new Date(record.createdAt),
-                    updatedAt: new Date(record.updatedAt),
-                }));
-                setMaintenance(parsedMaintenance);
-            } catch (error) {
-                setMaintenance([]);
-            }
-        }
-        setLoading(false);
-    }, [user]);
-
-    const saveMaintenanceToStorage = (updatedMaintenance: MaintenanceRecord[]) => {
-        localStorage.setItem('mockMaintenance', JSON.stringify(updatedMaintenance));
-        setMaintenance(updatedMaintenance);
-    };
 
     const resetForm = () => {
         setFormData({
@@ -161,35 +130,21 @@ const Maintenance: React.FC = () => {
         if (!user) return;
 
         try {
+            const processedData = {
+                ...formData,
+                date: new Date(formData.date),
+                nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate) : undefined,
+                nextDueMileage: formData.nextDueMileage && formData.nextDueMileage.trim() !== ''
+                    ? parseInt(formData.nextDueMileage)
+                    : undefined,
+            };
+
             if (editingRecord) {
                 // Update existing record
-                const updatedMaintenance = maintenance.map(record =>
-                    record.id === editingRecord.id
-                        ? {
-                            ...record,
-                            ...formData,
-                            date: new Date(formData.date),
-                            nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate) : undefined,
-                            nextDueMileage: formData.nextDueMileage ? parseInt(formData.nextDueMileage) : undefined,
-                            updatedAt: new Date(),
-                        }
-                        : record
-                );
-                saveMaintenanceToStorage(updatedMaintenance);
+                await updateMaintenance(editingRecord.id, processedData);
             } else {
                 // Add new record
-                const newRecord: MaintenanceRecord = {
-                    ...formData,
-                    id: `maintenance-${Date.now()}`,
-                    date: new Date(formData.date),
-                    nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate) : undefined,
-                    nextDueMileage: formData.nextDueMileage ? parseInt(formData.nextDueMileage) : undefined,
-                    userId: user.id,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                };
-                const updatedMaintenance = [newRecord, ...maintenance];
-                saveMaintenanceToStorage(updatedMaintenance);
+                await addMaintenance(processedData);
             }
             handleCloseDialog();
         } catch (error: any) {
@@ -215,10 +170,9 @@ const Maintenance: React.FC = () => {
     };
 
     const handleDelete = async () => {
-        if (selectedRecord) {
+        if (selectedRecord && user) {
             try {
-                const updatedMaintenance = maintenance.filter(record => record.id !== selectedRecord.id);
-                saveMaintenanceToStorage(updatedMaintenance);
+                await deleteMaintenance(selectedRecord.id);
             } catch (error: any) {
                 setError(error.message || 'Failed to delete maintenance record');
             }
@@ -227,17 +181,12 @@ const Maintenance: React.FC = () => {
     };
 
     const toggleCompleted = async (record: MaintenanceRecord) => {
+        if (!user) return;
+
         try {
-            const updatedMaintenance = maintenance.map(maintenanceRecord =>
-                maintenanceRecord.id === record.id
-                    ? {
-                        ...maintenanceRecord,
-                        completed: !maintenanceRecord.completed,
-                        updatedAt: new Date(),
-                    }
-                    : maintenanceRecord
-            );
-            saveMaintenanceToStorage(updatedMaintenance);
+            await updateMaintenance(record.id, {
+                completed: !record.completed,
+            });
         } catch (error: any) {
             setError(error.message || 'Failed to update maintenance record');
         }
