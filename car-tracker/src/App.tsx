@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box, CircularProgress, Typography } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { theme } from './theme';
 import Navigation from './components/Navigation';
@@ -11,6 +13,7 @@ import Register from './pages/Register';
 import Cars from './pages/Cars';
 import Maintenance from './pages/Maintenance';
 import Projects from './pages/Projects';
+import Events from './pages/Events';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 
@@ -80,6 +83,15 @@ const AppRoutes: React.FC = () => {
           }
         />
         <Route
+          path="/events"
+          element={
+            <>
+              <AdminNavigation />
+              <Events />
+            </>
+          }
+        />
+        <Route
           path="/*"
           element={<Navigate to="/admin" />}
         />
@@ -136,6 +148,15 @@ const AppRoutes: React.FC = () => {
           }
         />
         <Route
+          path="/events"
+          element={
+            <ProtectedRoute>
+              <Navigation />
+              <Events />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin"
           element={<Navigate to="/" />}
         />
@@ -148,11 +169,13 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AuthProvider>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <AuthProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AuthProvider>
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }

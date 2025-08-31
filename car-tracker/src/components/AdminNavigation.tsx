@@ -15,13 +15,16 @@ import {
     AdminPanelSettings as AdminIcon,
     Logout as LogoutIcon,
     AccountCircle,
+    Event,
+    Dashboard,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const AdminNavigation: React.FC = () => {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
     const handleLogout = async () => {
@@ -70,6 +73,52 @@ const AdminNavigation: React.FC = () => {
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
                     🔧 JDM Car Tracker - Admin Panel
                 </Typography>
+
+                {/* Navigation Links */}
+                <Box sx={{ display: 'flex', gap: 2, mr: 3 }}>
+                    <Box
+                        component={Link}
+                        to="/admin"
+                        sx={{
+                            color: 'inherit',
+                            textDecoration: 'none',
+                            px: 2,
+                            py: 1,
+                            borderRadius: 1,
+                            backgroundColor: location.pathname === '/admin' ? 'rgba(255,69,0,0.2)' : 'transparent',
+                            '&:hover': {
+                                backgroundColor: 'rgba(255,69,0,0.1)',
+                            },
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                        }}
+                    >
+                        <Dashboard fontSize="small" />
+                        Dashboard
+                    </Box>
+                    <Box
+                        component={Link}
+                        to="/events"
+                        sx={{
+                            color: 'inherit',
+                            textDecoration: 'none',
+                            px: 2,
+                            py: 1,
+                            borderRadius: 1,
+                            backgroundColor: location.pathname === '/events' ? 'rgba(255,69,0,0.2)' : 'transparent',
+                            '&:hover': {
+                                backgroundColor: 'rgba(255,69,0,0.1)',
+                            },
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                        }}
+                    >
+                        <Event fontSize="small" />
+                        Events
+                    </Box>
+                </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Typography variant="body2" sx={{ color: '#ff4500' }}>

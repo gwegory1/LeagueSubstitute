@@ -23,6 +23,7 @@ import {
     Assignment,
     AccountCircle,
     Logout,
+    Event,
 } from '@mui/icons-material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +41,7 @@ const Navigation: React.FC = () => {
         { text: 'Cars', path: '/', icon: <DirectionsCar /> },
         { text: 'Maintenance', path: '/maintenance', icon: <Build /> },
         { text: 'Projects', path: '/projects', icon: <Assignment /> },
+        { text: 'Events', path: '/events', icon: <Event /> },
     ];
 
     const handleDrawerToggle = () => {

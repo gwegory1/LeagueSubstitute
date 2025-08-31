@@ -58,6 +58,41 @@ export interface User {
     isAdmin?: boolean;
 }
 
+export interface Event {
+    id: string;
+    title: string;
+    description: string;
+    location: string;
+    date: Date;
+    time: string;
+    maxParticipants?: number;
+    currentParticipants: number;
+    category: EventCategory;
+    organizer: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    participants: string[]; // User IDs
+    isPublic: boolean;
+    tags: string[];
+    contactInfo?: string;
+    requirements?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export type EventCategory =
+    | 'car_meet'
+    | 'race'
+    | 'track_day'
+    | 'show'
+    | 'cruise'
+    | 'charity'
+    | 'workshop'
+    | 'competition'
+    | 'other';
+
 export type MaintenanceType =
     | 'oil_change'
     | 'tire_rotation'

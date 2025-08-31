@@ -13,7 +13,7 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Car, MaintenanceRecord, Project, User } from '../types';
+import { Car, MaintenanceRecord, Project, User, Event } from '../types';
 
 // Helper function to convert Firestore timestamp to Date
 const convertTimestamp = (timestamp: any): Date => {
@@ -391,4 +391,157 @@ export const updateUserProfile = async (userId: string, updates: Partial<Pick<Us
     };
 
     await updateDoc(userRef, updateData);
+};
+
+// Events operations (shared between all users)
+export const firestoreEvents = {
+    // Get all public events
+    async getAllEvents(): Promise<Event[]> {
+        const eventsRef = collection(db, 'events');
+        const q = query(eventsRef, where('isPublic', '==', true));
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: convertTimestamp(doc.data().date),
+            createdAt: convertTimestamp(doc.data().createdAt),
+            updatedAt: convertTimestamp(doc.data().updatedAt)
+        })) as Event[];
+    },
+
+    // Get events organized by user
+    async getUserEvents(userId: string): Promise<Event[]> {
+        const eventsRef = collection(db, 'events');
+        const q = query(eventsRef, where('organizer.id', '==', userId));
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: convertTimestamp(doc.data().date),
+            createdAt: convertTimestamp(doc.data().createdAt),
+            updatedAt: convertTimestamp(doc.data().updatedAt)
+        })) as Event[];
+    },
+
+    // Add new event
+    async addEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+        const eventsRef = collection(db, 'events');
+        const now = Timestamp.now();
+
+        // Clean the event data to remove undefined values
+        const cleanEventData: any = {
+            title: eventData.title,
+            description: eventData.description,
+            location: eventData.location,
+            date: Timestamp.fromDate(eventData.date),
+            time: eventData.time,
+            currentParticipants: eventData.currentParticipants || 0,
+            category: eventData.category,
+            organizer: {
+                id: eventData.organizer.id,
+                name: eventData.organizer.name,
+                email: eventData.organizer.email
+            },
+            participants: eventData.participants || [],
+            isPublic: eventData.isPublic,
+            tags: eventData.tags || [],
+            createdAt: now,
+            updatedAt: now
+        };
+
+        // Only add optional fields if they have values
+        if (eventData.maxParticipants !== undefined && eventData.maxParticipants !== null) {
+            cleanEventData.maxParticipants = eventData.maxParticipants;
+        }
+        if (eventData.contactInfo && eventData.contactInfo.trim()) {
+            cleanEventData.contactInfo = eventData.contactInfo.trim();
+        }
+        if (eventData.requirements && eventData.requirements.trim()) {
+            cleanEventData.requirements = eventData.requirements.trim();
+        }
+
+        console.log('Sending event data to Firestore:', cleanEventData);
+
+        const docRef = await addDoc(eventsRef, cleanEventData);
+        return docRef.id;
+    },
+
+    // Update event
+    async updateEvent(eventId: string, updates: Partial<Event>): Promise<void> {
+        const eventRef = doc(db, 'events', eventId);
+        const updateData: any = {
+            ...updates,
+            updatedAt: Timestamp.now()
+        };
+
+        if (updates.date) {
+            updateData.date = Timestamp.fromDate(updates.date);
+        }
+
+        await updateDoc(eventRef, updateData);
+    },
+
+    // Delete event
+    async deleteEvent(eventId: string): Promise<void> {
+        const eventRef = doc(db, 'events', eventId);
+        await deleteDoc(eventRef);
+    },
+
+    // Join event
+    async joinEvent(eventId: string, userId: string): Promise<void> {
+        const eventRef = doc(db, 'events', eventId);
+
+        try {
+            // Get current event data
+            const eventDoc = await getDocs(query(collection(db, 'events'), where('__name__', '==', eventId)));
+
+            if (!eventDoc.empty) {
+                const eventData = eventDoc.docs[0].data();
+                const currentParticipants = eventData.participants || [];
+
+                // Check if user is already participating
+                if (!currentParticipants.includes(userId)) {
+                    const updatedParticipants = [...currentParticipants, userId];
+
+                    await updateDoc(eventRef, {
+                        participants: updatedParticipants,
+                        currentParticipants: updatedParticipants.length,
+                        updatedAt: Timestamp.now()
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error joining event:', error);
+            throw error;
+        }
+    },
+
+    // Leave event
+    async leaveEvent(eventId: string, userId: string): Promise<void> {
+        const eventRef = doc(db, 'events', eventId);
+
+        try {
+            // Get current event data
+            const eventDoc = await getDocs(query(collection(db, 'events'), where('__name__', '==', eventId)));
+
+            if (!eventDoc.empty) {
+                const eventData = eventDoc.docs[0].data();
+                const currentParticipants = eventData.participants || [];
+
+                // Remove user from participants
+                const updatedParticipants = currentParticipants.filter((id: string) => id !== userId);
+
+                await updateDoc(eventRef, {
+                    participants: updatedParticipants,
+                    currentParticipants: updatedParticipants.length,
+                    updatedAt: Timestamp.now()
+                });
+            }
+        } catch (error) {
+            console.error('Error leaving event:', error);
+            throw error;
+        }
+    }
 };
