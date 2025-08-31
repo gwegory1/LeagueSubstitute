@@ -53,6 +53,11 @@ const AdminNavigation: React.FC = () => {
         handleUserMenuClose();
     };
 
+    const handleOverviewClick = () => {
+        navigate('/overview');
+        handleUserMenuClose();
+    };
+
     const handleLogoutClick = () => {
         handleLogout();
         handleUserMenuClose();
@@ -162,6 +167,12 @@ const AdminNavigation: React.FC = () => {
                         <AdminIcon fontSize="small" />
                     </ListItemIcon>
                     Dashboard
+                </MenuItem>
+                <MenuItem onClick={handleOverviewClick}>
+                    <ListItemIcon>
+                        <OverviewIcon fontSize="small" />
+                    </ListItemIcon>
+                    Client Overview
                 </MenuItem>
                 <MenuItem onClick={handleProfileClick}>
                     <ListItemIcon>

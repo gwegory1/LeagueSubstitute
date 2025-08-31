@@ -132,7 +132,7 @@ export const theme = createTheme({
                         backdropFilter: 'blur(24px) saturate(200%) brightness(1.2)',
                         WebkitBackdropFilter: 'blur(24px) saturate(200%) brightness(1.2)',
                         boxShadow: `
-                            0 12px 40px rgba(187, 5, 5, 0.4),
+                            0 12px 40px rgba(161, 161, 161, 0.4),
                             0 0 0 1px rgba(255, 255, 255, 0.15),
                             inset 0 1px 0 rgba(255, 255, 255, 0.25),
                             inset 0 -1px 0 rgba(255, 255, 255, 0.08),

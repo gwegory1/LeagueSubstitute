@@ -16,6 +16,7 @@ import Projects from './pages/Projects';
 import Events from './pages/Events';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
+import ClientDashboard from './pages/ClientDashboard';
 
 const LoadingScreen: React.FC = () => (
   <Box
@@ -95,6 +96,15 @@ const AppRoutes: React.FC = () => {
           path="/*"
           element={<Navigate to="/admin" />}
         />
+        <Route
+          path="/overview"
+          element={
+            <>
+              <AdminNavigation />
+              <ClientDashboard />
+            </>
+          }
+        />
       </Routes>
     );
   }
@@ -113,6 +123,15 @@ const AppRoutes: React.FC = () => {
         />
         <Route
           path="/"
+          element={
+            <ProtectedRoute>
+              <Navigation />
+              <ClientDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cars"
           element={
             <ProtectedRoute>
               <Navigation />
