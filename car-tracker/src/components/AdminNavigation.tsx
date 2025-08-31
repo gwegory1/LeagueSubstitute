@@ -15,6 +15,7 @@ import {
     AdminPanelSettings as AdminIcon,
     Logout as LogoutIcon,
     AccountCircle,
+    Visibility as OverviewIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -47,6 +48,11 @@ const AdminNavigation: React.FC = () => {
 
     const handleDashboardClick = () => {
         navigate('/admin');
+        handleUserMenuClose();
+    };
+
+    const handleOverviewClick = () => {
+        navigate('/overview');
         handleUserMenuClose();
     };
 
@@ -113,6 +119,12 @@ const AdminNavigation: React.FC = () => {
                         <AdminIcon fontSize="small" />
                     </ListItemIcon>
                     Dashboard
+                </MenuItem>
+                <MenuItem onClick={handleOverviewClick}>
+                    <ListItemIcon>
+                        <OverviewIcon fontSize="small" />
+                    </ListItemIcon>
+                    Client Overview
                 </MenuItem>
                 <MenuItem onClick={handleProfileClick}>
                     <ListItemIcon>

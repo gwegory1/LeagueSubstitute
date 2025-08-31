@@ -23,6 +23,7 @@ import {
     Assignment,
     AccountCircle,
     Logout,
+    Dashboard,
 } from '@mui/icons-material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -37,7 +38,8 @@ const Navigation: React.FC = () => {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     const menuItems = [
-        { text: 'Cars', path: '/', icon: <DirectionsCar /> },
+        { text: 'Dashboard', path: '/', icon: <Dashboard /> },
+        { text: 'Cars', path: '/cars', icon: <DirectionsCar /> },
         { text: 'Maintenance', path: '/maintenance', icon: <Build /> },
         { text: 'Projects', path: '/projects', icon: <Assignment /> },
     ];
