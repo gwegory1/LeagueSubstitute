@@ -7,6 +7,7 @@ export interface Car {
     vin?: string;
     mileage: number;
     color: string;
+    image?: string;
     userId: string;
     createdAt: Date;
     updatedAt: Date;

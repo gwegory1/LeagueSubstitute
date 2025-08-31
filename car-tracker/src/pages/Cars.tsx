@@ -6,6 +6,7 @@ import {
     Card,
     CardContent,
     CardActions,
+    CardMedia,
     Box,
     Fab,
     Dialog,
@@ -19,6 +20,9 @@ import {
     Menu,
     MenuItem,
     Stack,
+    FormControl,
+    InputLabel,
+    Select,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -29,6 +33,21 @@ import {
 } from '@mui/icons-material';
 import { useCars } from '../hooks/useCars';
 import { Car } from '../types';
+
+// Available car images - add more as needed
+const CAR_IMAGES = [
+    'sedan.jpg',
+    'suv.jpg',
+    'truck.jpg',
+    'hatchback.jpg',
+    'coupe.jpg',
+    'convertible.jpg',
+    'wagon.jpg',
+    'crossover.jpg',
+    'sports.jpg',
+    'luxury.jpg',
+    'default.webp'
+];
 
 const Cars: React.FC = () => {
     const { cars, loading, addCar, updateCar, deleteCar } = useCars();
@@ -47,6 +66,7 @@ const Cars: React.FC = () => {
         vin: '',
         mileage: 0,
         color: '',
+        image: 'default.webp',
     });
 
     const resetForm = () => {
@@ -58,6 +78,7 @@ const Cars: React.FC = () => {
             vin: '',
             mileage: 0,
             color: '',
+            image: 'default.webp',
         });
         setError('');
         setEditingCar(null);
@@ -74,6 +95,7 @@ const Cars: React.FC = () => {
                 vin: car.vin || '',
                 mileage: car.mileage,
                 color: car.color,
+                image: car.image || 'default.webp',
             });
         } else {
             resetForm();
@@ -193,6 +215,21 @@ const Cars: React.FC = () => {
                 >
                     {cars.map((car) => (
                         <Card key={car.id}>
+                            <CardMedia
+                                component="img"
+                                height="200"
+                                image={`/images/cars/${car.image || 'default.webp'}`}
+                                alt={`${car.year} ${car.make} ${car.model}`}
+                                sx={{
+                                    objectFit: 'contain',
+                                    backgroundColor: 'transparent',
+                                }}
+                                onError={(e) => {
+                                    // Fallback to default image if the specified image doesn't exist
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = '/images/cars/default.webp';
+                                }}
+                            />
                             <CardContent>
                                 <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                                     <Typography variant="h6" component="h2" gutterBottom>
@@ -320,6 +357,36 @@ const Cars: React.FC = () => {
                                 value={formData.vin}
                                 onChange={(e) => setFormData({ ...formData, vin: e.target.value })}
                             />
+                            <FormControl fullWidth>
+                                <InputLabel>Car Image</InputLabel>
+                                <Select
+                                    value={formData.image}
+                                    label="Car Image"
+                                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                                >
+                                    {CAR_IMAGES.map((image) => (
+                                        <MenuItem key={image} value={image}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <img
+                                                    src={`/images/cars/${image}`}
+                                                    alt={image}
+                                                    style={{
+                                                        width: 40,
+                                                        height: 30,
+                                                        objectFit: 'cover',
+                                                        borderRadius: 4,
+                                                    }}
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.style.display = 'none';
+                                                    }}
+                                                />
+                                                {image.replace(/\.(jpg|svg|webp)$/, '').replace(/([A-Z])/g, ' $1').trim()}
+                                            </Box>
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                         </Stack>
                     </DialogContent>
                     <DialogActions>
