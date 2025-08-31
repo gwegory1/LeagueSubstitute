@@ -5,7 +5,6 @@ import {
     Typography,
     Box,
     IconButton,
-    Avatar,
     Menu,
     MenuItem,
     ListItemIcon,
@@ -17,6 +16,7 @@ import {
     AccountCircle,
     Event,
     Dashboard,
+    Visibility as OverviewIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
