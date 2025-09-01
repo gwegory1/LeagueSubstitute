@@ -9,6 +9,11 @@ import {
     MenuItem,
     ListItemIcon,
     Divider,
+    Drawer,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemText,
 } from '@mui/material';
 import {
     AdminPanelSettings as AdminIcon,
@@ -17,6 +22,7 @@ import {
     Event,
     Dashboard,
     Visibility as OverviewIcon,
+    Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +32,7 @@ const AdminNavigation: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const handleLogout = async () => {
         try {
@@ -46,21 +53,25 @@ const AdminNavigation: React.FC = () => {
     const handleProfileClick = () => {
         navigate('/profile');
         handleUserMenuClose();
+        setMobileMenuOpen(false);
     };
 
     const handleDashboardClick = () => {
         navigate('/admin');
         handleUserMenuClose();
+        setMobileMenuOpen(false);
     };
 
     const handleOverviewClick = () => {
         navigate('/overview');
         handleUserMenuClose();
+        setMobileMenuOpen(false);
     };
 
     const handleLogoutClick = () => {
         handleLogout();
         handleUserMenuClose();
+        setMobileMenuOpen(false);
     };
 
     return (
@@ -79,8 +90,20 @@ const AdminNavigation: React.FC = () => {
                     🔧 JDM Car Tracker - Admin Panel
                 </Typography>
 
+                {/* Mobile Menu Button */}
+                <IconButton
+                    size="large"
+                    edge="start"
+                    color="inherit"
+                    aria-label="menu"
+                    onClick={() => setMobileMenuOpen(true)}
+                    sx={{ mr: 2, display: { xs: 'flex', md: 'none' } }}
+                >
+                    <MenuIcon />
+                </IconButton>
+
                 {/* Navigation Links */}
-                <Box sx={{ display: 'flex', gap: 2, mr: 3 }}>
+                <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2, mr: 3 }}>
                     <Box
                         component={Link}
                         to="/admin"
@@ -166,7 +189,7 @@ const AdminNavigation: React.FC = () => {
                     <ListItemIcon>
                         <AdminIcon fontSize="small" />
                     </ListItemIcon>
-                    Dashboard
+                    Dashboard/
                 </MenuItem>
                 <MenuItem onClick={handleOverviewClick}>
                     <ListItemIcon>
@@ -188,6 +211,73 @@ const AdminNavigation: React.FC = () => {
                     Logout
                 </MenuItem>
             </Menu>
+
+            {/* Mobile Drawer */}
+            <Drawer
+                anchor="left"
+                open={mobileMenuOpen}
+                onClose={() => setMobileMenuOpen(false)}
+                sx={{ display: { xs: 'block', md: 'none' } }}
+            >
+                <Box sx={{ width: 250, p: 2 }}>
+                    <Typography variant="h6" sx={{ mb: 2, color: '#ff4500', fontWeight: 'bold' }}>
+                        🔧 JDM Car Tracker
+                    </Typography>
+                    <List>
+                        <ListItem disablePadding>
+                            <ListItemButton
+                                component={Link}
+                                to="/admin"
+                                onClick={() => setMobileMenuOpen(false)}
+                                selected={location.pathname === '/admin'}
+                            >
+                                <ListItemIcon>
+                                    <Dashboard sx={{ color: '#ff4500' }} />
+                                </ListItemIcon>
+                                <ListItemText primary="Dashboard" />
+                            </ListItemButton>
+                        </ListItem>
+                        <ListItem disablePadding>
+                            <ListItemButton
+                                component={Link}
+                                to="/events"
+                                onClick={() => setMobileMenuOpen(false)}
+                                selected={location.pathname === '/events'}
+                            >
+                                <ListItemIcon>
+                                    <Event sx={{ color: '#ff4500' }} />
+                                </ListItemIcon>
+                                <ListItemText primary="Events" />
+                            </ListItemButton>
+                        </ListItem>
+                        <Divider sx={{ my: 1 }} />
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={handleOverviewClick}>
+                                <ListItemIcon>
+                                    <OverviewIcon sx={{ color: '#ff4500' }} />
+                                </ListItemIcon>
+                                <ListItemText primary="Client Overview" />
+                            </ListItemButton>
+                        </ListItem>
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={handleProfileClick}>
+                                <ListItemIcon>
+                                    <AccountCircle sx={{ color: '#ff4500' }} />
+                                </ListItemIcon>
+                                <ListItemText primary="Profile" />
+                            </ListItemButton>
+                        </ListItem>
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={handleLogoutClick}>
+                                <ListItemIcon>
+                                    <LogoutIcon sx={{ color: '#ff4500' }} />
+                                </ListItemIcon>
+                                <ListItemText primary="Logout" />
+                            </ListItemButton>
+                        </ListItem>
+                    </List>
+                </Box>
+            </Drawer>
         </AppBar>
     );
 };

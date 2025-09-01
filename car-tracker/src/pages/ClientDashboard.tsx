@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import BuildIcon from "@mui/icons-material/Build";
@@ -23,68 +24,12 @@ import Paper from "@mui/material/Paper";
 import LinearProgress from "@mui/material/LinearProgress";
 import Button from "@mui/material/Button";
 
-// Mocked API functions (replace with real API calls)
-const fetchRecentCar = async () => ({
-    id: 1,
-    name: "Toyota Supra",
-    lastEdited: "2024-06-10T14:30:00Z",
-    image: "/images/supra.jpg",
-    status: "Active",
-});
-const fetchUpcomingMaintenance = async () => [
-    {
-        id: 1,
-        car: "Toyota Supra",
-        type: "Oil Change",
-        dueDate: "2024-06-20",
-    },
-    {
-        id: 2,
-        car: "Mazda RX-7",
-        type: "Brake Inspection",
-        dueDate: "2024-06-22",
-    },
-];
-const fetchProjectsOverview = async () => [
-    {
-        id: 1,
-        name: "Supra Turbo Upgrade",
-        status: "In Progress",
-        progress: 70,
-    },
-    {
-        id: 2,
-        name: "RX-7 Paint Restoration",
-        status: "Completed",
-        progress: 100,
-    },
-];
-const fetchUpcomingEvents = async () => [
-    {
-        id: 1,
-        name: "Track Day at Silverstone",
-        date: "2024-06-25",
-        type: "Track Day",
-    },
-    {
-        id: 2,
-        name: "Car Show Downtown",
-        date: "2024-06-28",
-        type: "Car Show",
-    },
-    {
-        id: 3,
-        name: "Drag Racing Competition",
-        date: "2024-07-02",
-        type: "Racing",
-    },
-];
-const fetchMetrics = async () => ({
-    totalCars: 5,
-    activeProjects: 2,
-    upcomingMaintenances: 3,
-    totalMileage: 124000,
-});
+// Import hooks for real data
+import { useCars } from '../hooks/useCars';
+import { useEvents } from '../hooks/useEvents';
+import { useProjects } from '../hooks/useProjects';
+import { useMaintenance } from '../hooks/useMaintenance';
+import { useAuth } from '../context/AuthContext';
 
 // Simplified Animation variants
 const containerVariants = {
@@ -116,32 +61,119 @@ const cardHoverVariants = {
 };
 
 const ClientDashboard: React.FC = () => {
-    const [recentCar, setRecentCar] = useState<any>(null);
-    const [upcomingMaintenance, setUpcomingMaintenance] = useState<any[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
-    const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-    const [metrics, setMetrics] = useState<any>(null);
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const { cars, loading: carsLoading } = useCars();
+    const { events, getUpcomingEvents, loading: eventsLoading } = useEvents();
+    const { projects, loading: projectsLoading } = useProjects();
+    const { maintenance, loading: maintenanceLoading } = useMaintenance();
+
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchAll = async () => {
-            setLoading(true);
-            const [car, maintenance, proj, events, metr] = await Promise.all([
-                fetchRecentCar(),
-                fetchUpcomingMaintenance(),
-                fetchProjectsOverview(),
-                fetchUpcomingEvents(),
-                fetchMetrics(),
-            ]);
-            setRecentCar(car);
-            setUpcomingMaintenance(maintenance);
-            setProjects(proj);
-            setUpcomingEvents(events);
-            setMetrics(metr);
-            setLoading(false);
+    // Calculate real metrics from data
+    const metrics = useMemo(() => {
+        const totalCars = cars.length;
+        const activeProjects = projects.filter(p => p.status === 'in_progress').length;
+        const totalMileage = cars.reduce((sum, car) => sum + car.mileage, 0);
+
+        // Calculate upcoming maintenance (next 30 days)
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const upcomingMaintenances = maintenance.filter(m =>
+            !m.completed &&
+            m.nextDueDate &&
+            m.nextDueDate >= now &&
+            m.nextDueDate <= thirtyDaysFromNow
+        ).length;
+
+        return {
+            totalCars,
+            activeProjects,
+            upcomingMaintenances,
+            totalMileage
         };
-        fetchAll();
-    }, []);
+    }, [cars, projects, maintenance]);
+
+    // Get the most recently updated car
+    const recentCar = useMemo(() => {
+        if (cars.length === 0) return null;
+        return cars.reduce((latest, car) =>
+            car.updatedAt > latest.updatedAt ? car : latest
+        );
+    }, [cars]);
+
+    // Get upcoming maintenance items
+    const upcomingMaintenance = useMemo(() => {
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        return maintenance
+            .filter(m => !m.completed && m.nextDueDate && m.nextDueDate >= now && m.nextDueDate <= thirtyDaysFromNow)
+            .sort((a, b) => a.nextDueDate!.getTime() - b.nextDueDate!.getTime())
+            .slice(0, 5)
+            .map(m => {
+                const car = cars.find(c => c.id === m.carId);
+                return {
+                    id: m.id,
+                    car: car ? `${car.make} ${car.model}` : 'Unknown Car',
+                    type: m.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    dueDate: m.nextDueDate!.toISOString().split('T')[0]
+                };
+            });
+    }, [maintenance, cars]);
+
+    // Get active projects with progress
+    const activeProjects = useMemo(() => {
+        return projects
+            .filter(p => p.status !== 'cancelled')
+            .slice(0, 3)
+            .map(p => {
+                let progress = 0;
+                if (p.status === 'completed') {
+                    progress = 100;
+                } else if (p.status === 'in_progress') {
+                    if (p.startDate && p.targetDate) {
+                        const total = p.targetDate.getTime() - p.startDate.getTime();
+                        const elapsed = new Date().getTime() - p.startDate.getTime();
+                        progress = Math.min(Math.max((elapsed / total) * 100, 10), 90);
+                    } else {
+                        progress = 25; // Default for in-progress without dates
+                    }
+                } else if (p.status === 'planned') {
+                    progress = 5;
+                }
+
+                return {
+                    id: p.id,
+                    name: p.title,
+                    status: p.status === 'in_progress' ? 'In Progress' :
+                        p.status === 'completed' ? 'Completed' :
+                            p.status === 'planned' ? 'Planned' : 'Cancelled',
+                    progress: Math.round(progress)
+                };
+            });
+    }, [projects]);
+
+    // Get upcoming events
+    const upcomingEvents = useMemo(() => {
+        const upcoming = getUpcomingEvents();
+        return upcoming
+            .sort((a, b) => a.date.getTime() - b.date.getTime())
+            .slice(0, 4)
+            .map(e => ({
+                id: e.id,
+                name: e.title,
+                date: e.date.toISOString().split('T')[0],
+                type: e.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+            }));
+    }, [getUpcomingEvents]);
+
+    useEffect(() => {
+        // Set loading to false when all data is loaded
+        if (!carsLoading && !eventsLoading && !projectsLoading && !maintenanceLoading) {
+            setLoading(false);
+        }
+    }, [carsLoading, eventsLoading, projectsLoading, maintenanceLoading]);
 
     if (loading) {
         return (
@@ -152,7 +184,7 @@ const ClientDashboard: React.FC = () => {
     }
 
     return (
-        <Box sx={{ p: 3, minHeight: '100vh' }}>
+        <Box sx={{ p: 3, pt: 11, minHeight: '100vh' }}>
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -232,54 +264,118 @@ const ClientDashboard: React.FC = () => {
                                 background: 'linear-gradient(135deg, rgba(0,229,255,0.1) 0%, rgba(255,77,166,0.1) 100%)',
                                 border: 1,
                                 borderColor: 'primary.main',
-                                mb: 3
-                            }}>
+                                mb: 3,
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: 3,
+                                }
+                            }}
+                                onClick={() => navigate('/cars')}
+                            >
                                 <CardContent sx={{ p: 3 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                        <Avatar
-                                            variant="rounded"
-                                            src={recentCar.image}
-                                            alt={recentCar.name}
-                                            sx={{
-                                                width: 80,
-                                                height: 80,
-                                                border: 2,
-                                                borderColor: 'primary.main'
-                                            }}
-                                        >
-                                            <DirectionsCarIcon fontSize="large" />
-                                        </Avatar>
-                                        <Box sx={{ flex: 1 }}>
-                                            <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                                {recentCar.name}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                                Last edited: {new Date(recentCar.lastEdited).toLocaleDateString()}
-                                            </Typography>
-                                            <Chip
-                                                label={recentCar.status}
-                                                size="small"
-                                                color="success"
-                                                variant="outlined"
+                                    {recentCar ? (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                            <Box
+                                                component="img"
+                                                src={`/images/cars/${recentCar.image || 'default.webp'}`}
+                                                alt={`${recentCar.year} ${recentCar.make} ${recentCar.model}`}
+                                                sx={{
+                                                    width: 280,
+                                                    height: 120,
+                                                    objectFit: 'cover',
+                                                    backgroundColor: 'transparent',
+                                                    borderRadius: 2,
+                                                }}
+                                                onError={(e) => {
+                                                    // Fallback to default image if the specified image doesn't exist
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.src = '/images/cars/default.webp';
+                                                }}
                                             />
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                                    {recentCar.make} {recentCar.model} ({recentCar.year})
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                    Last edited: {new Date(recentCar.updatedAt).toLocaleDateString()}
+                                                </Typography>
+                                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                                    <Chip
+                                                        label="Active"
+                                                        size="small"
+                                                        color="success"
+                                                        variant="outlined"
+                                                    />
+                                                    <Chip
+                                                        label={`${recentCar.mileage.toLocaleString()} km`}
+                                                        size="small"
+                                                        color="primary"
+                                                        variant="outlined"
+                                                    />
+                                                </Box>
+                                            </Box>
+                                            <TimelapseIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.3 }} />
                                         </Box>
-                                        <TimelapseIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.3 }} />
-                                    </Box>
+                                    ) : (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                            <Box
+                                                component="img"
+                                                src="/images/cars/default.webp"
+                                                alt="No car available"
+                                                sx={{
+                                                    width: 280,
+                                                    height: 120,
+                                                    objectFit: 'cover',
+                                                    backgroundColor: 'transparent',
+                                                    borderRadius: 2,
+                                                    opacity: 0.6,
+                                                }}
+                                            />
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                                    No Cars Yet
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                    Add your first car to get started!
+                                                </Typography>
+                                                <Chip
+                                                    label="Getting Started"
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
+                                                />
+                                            </Box>
+                                            <TimelapseIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.3 }} />
+                                        </Box>
+                                    )}
                                 </CardContent>
                             </Card>
                         </motion.div>
 
                         {/* Projects Section */}
                         <motion.div variants={itemVariants} whileHover={cardHoverVariants.hover}>
-                            <Card sx={{ borderRadius: 2, mb: 3 }}>
+                            <Card sx={{
+                                borderRadius: 2,
+                                mb: 3,
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: 3,
+                                }
+                            }}
+                                onClick={() => navigate('/projects')}
+                            >
                                 <CardContent>
                                     <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <BuildIcon color="primary" />
                                         Active Projects
                                     </Typography>
                                     <Box sx={{ mt: 2 }}>
-                                        {projects.map((proj, index) => (
-                                            <Box key={proj.id} sx={{ mb: index === projects.length - 1 ? 0 : 2 }}>
+                                        {activeProjects.length > 0 ? activeProjects.map((proj, index) => (
+                                            <Box key={proj.id} sx={{ mb: index === activeProjects.length - 1 ? 0 : 2 }}>
                                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                                     <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                                                         {proj.name}
@@ -287,7 +383,7 @@ const ClientDashboard: React.FC = () => {
                                                     <Chip
                                                         label={proj.status}
                                                         size="small"
-                                                        color={proj.status === "Completed" ? "success" : "warning"}
+                                                        color={proj.status === "Completed" ? "success" : proj.status === "In Progress" ? "warning" : "default"}
                                                         variant="outlined"
                                                     />
                                                 </Box>
@@ -306,7 +402,17 @@ const ClientDashboard: React.FC = () => {
                                                     </Typography>
                                                 </Box>
                                             </Box>
-                                        ))}
+                                        )) : (
+                                            <Box sx={{ textAlign: 'center', py: 3 }}>
+                                                <BuildIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+                                                <Typography variant="body2" color="text.secondary">
+                                                    No active projects
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Start your first project!
+                                                </Typography>
+                                            </Box>
+                                        )}
                                     </Box>
                                 </CardContent>
                             </Card>
@@ -317,7 +423,19 @@ const ClientDashboard: React.FC = () => {
                     <Box sx={{ flex: { xs: 1, lg: 1 } }}>
                         {/* Upcoming Maintenance */}
                         <motion.div variants={itemVariants} whileHover={cardHoverVariants.hover}>
-                            <Card sx={{ borderRadius: 2, mb: 3, height: 'fit-content' }}>
+                            <Card sx={{
+                                borderRadius: 2,
+                                mb: 3,
+                                height: 'fit-content',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: 3,
+                                }
+                            }}
+                                onClick={() => navigate('/maintenance')}
+                            >
                                 <CardContent>
                                     <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, paddingTop: 1, paddingLeft: 1 }}>
                                         <BuildIcon color="secondary" />
@@ -384,7 +502,17 @@ const ClientDashboard: React.FC = () => {
 
                         {/* Upcoming Events */}
                         <motion.div variants={itemVariants} whileHover={cardHoverVariants.hover}>
-                            <Card sx={{ borderRadius: 2 }}>
+                            <Card sx={{
+                                borderRadius: 2,
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: 3,
+                                }
+                            }}
+                                onClick={() => navigate('/events')}
+                            >
                                 <CardContent>
                                     <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                         <EventIcon color="info" />

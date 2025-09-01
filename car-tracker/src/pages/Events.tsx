@@ -450,46 +450,45 @@ const Events: React.FC = () => {
                 key={event.id}
                 sx={{
                     height: '100%',
-                    background: `linear-gradient(135deg, ${config.color}20 0%, ${config.color}05 100%)`,
-                    border: `2px solid ${config.color}40`,
-                    borderRadius: 3,
+                    backgroundColor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
                     transition: 'all 0.3s ease',
                     '&:hover': {
-                        transform: 'translateY(-8px)',
-                        boxShadow: `0 12px 32px ${config.color}30`,
-                        border: `2px solid ${config.color}60`,
+                        transform: 'translateY(-4px)',
+                        boxShadow: 3,
+                        borderColor: config.color,
                     },
                     position: 'relative',
-                    overflow: 'visible'
                 }}
             >
                 {/* Category Badge */}
                 <Box
                     sx={{
                         position: 'absolute',
-                        top: -12,
-                        left: 16,
+                        top: 12,
+                        right: 12,
                         backgroundColor: config.color,
                         color: 'white',
-                        px: 2,
+                        px: 1.5,
                         py: 0.5,
-                        borderRadius: 2,
+                        borderRadius: 1,
                         display: 'flex',
                         alignItems: 'center',
                         gap: 0.5,
                         fontSize: '0.75rem',
                         fontWeight: 'bold',
                         zIndex: 1,
-                        boxShadow: `0 4px 12px ${config.color}40`,
                     }}
                 >
                     {config.icon}
                     {config.label}
                 </Box>
 
-                <CardContent sx={{ pt: 3, pb: 1 }}>
+                <CardContent sx={{ p: 3, pb: 1 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                        <Typography variant="h6" component="h2" fontWeight="bold" sx={{ mt: 1 }}>
+                        <Typography variant="h6" component="h2" fontWeight="bold" sx={{ pr: 10 }}>
                             {event.title}
                         </Typography>
                         {(organizer || user?.isAdmin) && (
@@ -637,7 +636,7 @@ const Events: React.FC = () => {
     }
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: 4, mt: 8 }}>
             {/* Header */}
             <Box
                 sx={{
@@ -703,7 +702,7 @@ const Events: React.FC = () => {
             )}
 
             {/* Search and Filter Controls */}
-            <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 3 }}>
+            <Paper elevation={1} sx={{ p: 3, mb: 3, borderRadius: 2, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
                 <Box display="flex" alignItems="center" gap={2} mb={2}>
                     <SearchIcon color="primary" />
                     <Typography variant="h6" fontWeight="bold">
@@ -817,271 +816,277 @@ const Events: React.FC = () => {
                 </Collapse>
             </Paper>
 
-            {/* Monthly Calendar */}
-            <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 3 }}>
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-                    <Box display="flex" alignItems="center" gap={2}>
-                        <CalendarIcon color="primary" />
-                        <Typography variant="h6" fontWeight="bold">
-                            Event Calendar
-                        </Typography>
+            {/* Main Content Area with Calendar on Right */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' }, gap: 3, mb: 3 }}>
+                <Box>
+                    {/* Tabs */}
+                    <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                        <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+                            <Tab label={`All Events (${filteredEvents.length})`} />
+                            <Tab label={`My Events (${userEvents.length})`} />
+                            <Tab label={`Upcoming (${filteredUpcomingEvents.length})`} />
+                        </Tabs>
                     </Box>
-                    <Box display="flex" alignItems="center" gap={1}>
-                        <IconButton onClick={() => changeCalendarMonth('prev')}>
-                            <ExpandLessIcon sx={{ transform: 'rotate(90deg)' }} />
-                        </IconButton>
-                        <Typography variant="h6" sx={{ minWidth: 200, textAlign: 'center' }}>
-                            {currentCalendarMonth.toLocaleDateString('en-US', {
-                                month: 'long',
-                                year: 'numeric'
-                            })}
-                        </Typography>
-                        <IconButton onClick={() => changeCalendarMonth('next')}>
-                            <ExpandMoreIcon sx={{ transform: 'rotate(90deg)' }} />
-                        </IconButton>
-                    </Box>
-                </Box>
 
-                {/* Calendar Grid */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
-                    {/* Day Headers */}
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                        <Box key={day}>
-                            <Typography
-                                variant="caption"
-                                fontWeight="bold"
-                                textAlign="center"
-                                display="block"
-                                py={1}
-                                color="text.secondary"
-                            >
-                                {day}
-                            </Typography>
-                        </Box>
-                    ))}
-
-                    {/* Calendar Days */}
-                    {generateCalendarDays().map((dayData, index) => (
-                        <Box key={index}>
+                    {/* Tab Panels */}
+                    <TabPanel value={tabValue} index={0}>
+                        {filteredEvents.length === 0 ? (
                             <Box
-                                sx={{
-                                    minHeight: 40,
-                                    p: 0.5,
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    borderRadius: 1,
-                                    cursor: dayData ? 'pointer' : 'default',
-                                    backgroundColor: dayData?.hasEvents ? 'primary.light' : 'transparent',
-                                    color: dayData?.hasEvents ? 'primary.contrastText' : 'text.primary',
-                                    '&:hover': dayData ? {
-                                        backgroundColor: dayData.hasEvents ? 'primary.main' : 'action.hover',
-                                    } : {},
-                                    transition: 'all 0.2s ease',
-                                }}
-                                onClick={() => {
-                                    if (dayData) {
-                                        setSelectedDate(dayData.date);
-                                        setTabValue(0); // Switch to All Events tab
-                                    }
-                                }}
+                                display="flex"
+                                flexDirection="column"
+                                alignItems="center"
+                                justifyContent="center"
+                                py={8}
+                                textAlign="center"
                             >
-                                {dayData && (
-                                    <>
-                                        <Typography
-                                            variant="body2"
-                                            fontWeight={dayData.hasEvents ? 'bold' : 'normal'}
-                                            textAlign="center"
-                                        >
-                                            {dayData.day}
-                                        </Typography>
-                                        {dayData.hasEvents && (
-                                            <Box
-                                                sx={{
-                                                    width: 6,
-                                                    height: 6,
-                                                    borderRadius: '50%',
-                                                    backgroundColor: 'primary.contrastText',
-                                                    mx: 'auto',
-                                                    mt: 0.5,
-                                                }}
-                                            />
-                                        )}
-                                    </>
+                                <EventIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                                <Typography variant="h5" gutterBottom>
+                                    {hasActiveFilters ? 'No events match your filters' : 'No events yet'}
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" mb={3}>
+                                    {hasActiveFilters
+                                        ? 'Try adjusting your search criteria or filters'
+                                        : 'Be the first to create an amazing automotive event!'
+                                    }
+                                </Typography>
+                                {hasActiveFilters ? (
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<ClearIcon />}
+                                        onClick={clearFilters}
+                                    >
+                                        Clear Filters
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<AddIcon />}
+                                        onClick={() => handleOpenDialog()}
+                                    >
+                                        Create First Event
+                                    </Button>
                                 )}
                             </Box>
-                        </Box>
-                    ))}
+                        ) : (
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' },
+                                    gap: 3
+                                }}
+                            >
+                                {filteredEvents.map((event) => (
+                                    <Box key={event.id}>
+                                        {renderEventCard(event)}
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
+                    </TabPanel>
+
+                    <TabPanel value={tabValue} index={1}>
+                        {userEvents.length === 0 ? (
+                            <Box textAlign="center" py={4}>
+                                <Typography variant="h6" gutterBottom>
+                                    You haven't organized any events yet
+                                </Typography>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<AddIcon />}
+                                    onClick={() => handleOpenDialog()}
+                                >
+                                    Create Your First Event
+                                </Button>
+                            </Box>
+                        ) : (
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' },
+                                    gap: 3
+                                }}
+                            >
+                                {userEvents.map((event) => (
+                                    <Box key={event.id}>
+                                        {renderEventCard(event)}
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
+                    </TabPanel>
+
+                    <TabPanel value={tabValue} index={2}>
+                        {filteredUpcomingEvents.length === 0 ? (
+                            <Box textAlign="center" py={4}>
+                                <Typography variant="h6" gutterBottom>
+                                    {hasActiveFilters
+                                        ? 'No upcoming events match your filters'
+                                        : 'No upcoming events in the next 30 days'
+                                    }
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" mb={2}>
+                                    {hasActiveFilters
+                                        ? 'Try adjusting your search criteria or filters'
+                                        : 'Check back later or create your own event!'
+                                    }
+                                </Typography>
+                                {hasActiveFilters && (
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<ClearIcon />}
+                                        onClick={clearFilters}
+                                    >
+                                        Clear Filters
+                                    </Button>
+                                )}
+                            </Box>
+                        ) : (
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' },
+                                    gap: 3
+                                }}
+                            >
+                                {filteredUpcomingEvents.map((event) => (
+                                    <Box key={event.id}>
+                                        {renderEventCard(event)}
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
+                    </TabPanel>
                 </Box>
 
-                {selectedDate && (
-                    <Box mt={2} p={2} bgcolor="action.hover" borderRadius={2}>
-                        <Typography variant="subtitle2" gutterBottom>
-                            Events on {selectedDate.toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                month: 'long',
-                                day: 'numeric',
-                                year: 'numeric'
-                            })}:
-                        </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap">
-                            {getEventsForDate(selectedDate).map((event) => {
-                                const config = eventCategoryConfig[event.category];
-                                return (
-                                    <Chip
-                                        key={event.id}
-                                        label={event.title}
-                                        size="small"
-                                        sx={{
-                                            backgroundColor: config.color,
-                                            color: 'white',
-                                            '&:hover': { opacity: 0.8 }
-                                        }}
-                                        onClick={() => setSelectedDate(null)}
-                                    />
-                                );
-                            })}
-                        </Stack>
+                {/* Calendar Sidebar */}
+                <Paper elevation={1} sx={{ p: 3, borderRadius: 2, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider', height: 'fit-content', position: 'sticky', top: 20 }}>
+                    <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+                        <Box display="flex" alignItems="center" gap={2}>
+                            <CalendarIcon color="primary" />
+                            <Typography variant="h6" fontWeight="bold">
+                                Event Calendar
+                            </Typography>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap={1}>
+                            <IconButton onClick={() => changeCalendarMonth('prev')}>
+                                <ExpandMoreIcon sx={{ transform: 'rotate(90deg)' }} />
+                            </IconButton>
+                            <Typography variant="subtitle1" sx={{ minWidth: 150, textAlign: 'center', fontWeight: 500 }}>
+                                {currentCalendarMonth.toLocaleDateString('en-US', {
+                                    month: 'long',
+                                    year: 'numeric'
+                                })}
+                            </Typography>
+                            <IconButton onClick={() => changeCalendarMonth('next')}>
+                                <ExpandLessIcon sx={{ transform: 'rotate(90deg)' }} />
+                            </IconButton>
+                        </Box>
                     </Box>
-                )}
-            </Paper>
 
-            {/* Tabs */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-                <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
-                    <Tab label={`All Events (${filteredEvents.length})`} />
-                    <Tab label={`My Events (${userEvents.length})`} />
-                    <Tab label={`Upcoming (${filteredUpcomingEvents.length})`} />
-                </Tabs>
+                    {/* Calendar Grid */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
+                        {/* Day Headers */}
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                            <Box key={day}>
+                                <Typography
+                                    variant="caption"
+                                    fontWeight="bold"
+                                    textAlign="center"
+                                    display="block"
+                                    py={1}
+                                    color="text.secondary"
+                                >
+                                    {day}
+                                </Typography>
+                            </Box>
+                        ))}
+
+                        {/* Calendar Days */}
+                        {generateCalendarDays().map((dayData, index) => (
+                            <Box key={index}>
+                                <Box
+                                    sx={{
+                                        minHeight: 32,
+                                        p: 0.5,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        borderRadius: 1,
+                                        cursor: dayData ? 'pointer' : 'default',
+                                        backgroundColor: dayData?.hasEvents ? 'primary.light' : 'transparent',
+                                        color: dayData?.hasEvents ? 'primary.contrastText' : 'text.primary',
+                                        '&:hover': dayData ? {
+                                            backgroundColor: dayData.hasEvents ? 'primary.main' : 'action.hover',
+                                        } : {},
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                    onClick={() => {
+                                        if (dayData) {
+                                            setSelectedDate(dayData.date);
+                                            setTabValue(0); // Switch to All Events tab
+                                        }
+                                    }}
+                                >
+                                    {dayData && (
+                                        <>
+                                            <Typography
+                                                variant="body2"
+                                                fontWeight={dayData.hasEvents ? 'bold' : 'normal'}
+                                                textAlign="center"
+                                                fontSize="0.75rem"
+                                            >
+                                                {dayData.day}
+                                            </Typography>
+                                            {dayData.hasEvents && (
+                                                <Box
+                                                    sx={{
+                                                        width: 4,
+                                                        height: 4,
+                                                        borderRadius: '50%',
+                                                        backgroundColor: 'primary.contrastText',
+                                                        mx: 'auto',
+                                                        mt: 0.5,
+                                                    }}
+                                                />
+                                            )}
+                                        </>
+                                    )}
+                                </Box>
+                            </Box>
+                        ))}
+                    </Box>
+
+                    {selectedDate && (
+                        <Box mt={2} p={2} bgcolor="action.hover" borderRadius={2}>
+                            <Typography variant="subtitle2" gutterBottom>
+                                Events on {selectedDate.toLocaleDateString('en-US', {
+                                    weekday: 'long',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                })}:
+                            </Typography>
+                            <Stack direction="column" spacing={0.5}>
+                                {getEventsForDate(selectedDate).map((event) => {
+                                    const config = eventCategoryConfig[event.category];
+                                    return (
+                                        <Chip
+                                            key={event.id}
+                                            label={event.title}
+                                            size="small"
+                                            sx={{
+                                                backgroundColor: config.color,
+                                                color: 'white',
+                                                '&:hover': { opacity: 0.8 }
+                                            }}
+                                            onClick={() => setSelectedDate(null)}
+                                        />
+                                    );
+                                })}
+                            </Stack>
+                        </Box>
+                    )}
+                </Paper>
             </Box>
-
-            {/* Tab Panels */}
-            <TabPanel value={tabValue} index={0}>
-                {filteredEvents.length === 0 ? (
-                    <Box
-                        display="flex"
-                        flexDirection="column"
-                        alignItems="center"
-                        justifyContent="center"
-                        py={8}
-                        textAlign="center"
-                    >
-                        <EventIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                        <Typography variant="h5" gutterBottom>
-                            {hasActiveFilters ? 'No events match your filters' : 'No events yet'}
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary" mb={3}>
-                            {hasActiveFilters
-                                ? 'Try adjusting your search criteria or filters'
-                                : 'Be the first to create an amazing automotive event!'
-                            }
-                        </Typography>
-                        {hasActiveFilters ? (
-                            <Button
-                                variant="outlined"
-                                startIcon={<ClearIcon />}
-                                onClick={clearFilters}
-                            >
-                                Clear Filters
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="contained"
-                                startIcon={<AddIcon />}
-                                onClick={() => handleOpenDialog()}
-                            >
-                                Create First Event
-                            </Button>
-                        )}
-                    </Box>
-                ) : (
-                    <Box
-                        sx={{
-                            display: 'grid',
-                            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-                            gap: 3
-                        }}
-                    >
-                        {filteredEvents.map((event) => (
-                            <Box key={event.id}>
-                                {renderEventCard(event)}
-                            </Box>
-                        ))}
-                    </Box>
-                )}
-            </TabPanel>
-
-            <TabPanel value={tabValue} index={1}>
-                {userEvents.length === 0 ? (
-                    <Box textAlign="center" py={4}>
-                        <Typography variant="h6" gutterBottom>
-                            You haven't organized any events yet
-                        </Typography>
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog()}
-                        >
-                            Create Your First Event
-                        </Button>
-                    </Box>
-                ) : (
-                    <Box
-                        sx={{
-                            display: 'grid',
-                            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-                            gap: 3
-                        }}
-                    >
-                        {userEvents.map((event) => (
-                            <Box key={event.id}>
-                                {renderEventCard(event)}
-                            </Box>
-                        ))}
-                    </Box>
-                )}
-            </TabPanel>
-
-            <TabPanel value={tabValue} index={2}>
-                {filteredUpcomingEvents.length === 0 ? (
-                    <Box textAlign="center" py={4}>
-                        <Typography variant="h6" gutterBottom>
-                            {hasActiveFilters
-                                ? 'No upcoming events match your filters'
-                                : 'No upcoming events in the next 30 days'
-                            }
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" mb={2}>
-                            {hasActiveFilters
-                                ? 'Try adjusting your search criteria or filters'
-                                : 'Check back later or create your own event!'
-                            }
-                        </Typography>
-                        {hasActiveFilters && (
-                            <Button
-                                variant="outlined"
-                                startIcon={<ClearIcon />}
-                                onClick={clearFilters}
-                            >
-                                Clear Filters
-                            </Button>
-                        )}
-                    </Box>
-                ) : (
-                    <Box
-                        sx={{
-                            display: 'grid',
-                            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-                            gap: 3
-                        }}
-                    >
-                        {filteredUpcomingEvents.map((event) => (
-                            <Box key={event.id}>
-                                {renderEventCard(event)}
-                            </Box>
-                        ))}
-                    </Box>
-                )}
-            </TabPanel>
 
             {/* Floating Action Button */}
             <Fab

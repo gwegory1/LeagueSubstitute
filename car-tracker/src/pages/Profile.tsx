@@ -72,7 +72,7 @@ const Profile: React.FC = () => {
     }
 
     return (
-        <Container maxWidth="md" sx={{ py: 4 }}>
+        <Container maxWidth="md" sx={{ py: 4, mt: 8 }}>
             <Typography variant="h4" component="h1" gutterBottom>
                 Profile Settings
             </Typography>
