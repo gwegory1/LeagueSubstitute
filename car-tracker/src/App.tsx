@@ -96,15 +96,6 @@ const AppRoutes: React.FC = () => {
           path="/*"
           element={<Navigate to="/admin" />}
         />
-        <Route
-          path="/overview"
-          element={
-            <>
-              <AdminNavigation />
-              <ClientDashboard />
-            </>
-          }
-        />
       </Routes>
     );
   }

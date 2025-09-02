@@ -468,7 +468,7 @@ const Events: React.FC = () => {
                     sx={{
                         position: 'absolute',
                         top: 12,
-                        right: 12,
+                        right: (organizer || user?.isAdmin) ? 52 : 12, // Move left when menu button is present
                         backgroundColor: config.color,
                         color: 'white',
                         px: 1.5,

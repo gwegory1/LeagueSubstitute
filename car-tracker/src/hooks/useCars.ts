@@ -38,16 +38,20 @@ export const useCars = () => {
         setLoading(true);
 
         // Use Firestore for all data
-        console.log('� Using Firebase Firestore for car data');
+        console.log('🔥 Using Firebase Firestore for car data');
 
-        // Set up real-time listener for user's cars
-        const unsubscribe = firestoreListeners.subscribeToUserCars(
-            user.id,
-            (firestoreCars) => {
+        // Set up real-time listener based on user role
+        const unsubscribe = user.isAdmin
+            ? firestoreListeners.subscribeToAllCars((firestoreCars) => {
+                console.log('🔧 Admin: Loading ALL cars from all users:', firestoreCars.length);
                 setCars(firestoreCars);
                 setLoading(false);
-            }
-        );
+            })
+            : firestoreListeners.subscribeToUserCars(user.id, (firestoreCars) => {
+                console.log('👤 User: Loading cars for user:', user.id, firestoreCars.length);
+                setCars(firestoreCars);
+                setLoading(false);
+            });
 
         // Cleanup listener on unmount
         return () => unsubscribe();

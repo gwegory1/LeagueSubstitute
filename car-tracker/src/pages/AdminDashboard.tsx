@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import {
     Box,
     Container,
@@ -22,6 +22,7 @@ import {
     DialogActions,
     Button,
     Alert,
+    CircularProgress,
 } from '@mui/material';
 import {
     People as PeopleIcon,
@@ -33,19 +34,20 @@ import {
     Delete as DeleteIcon,
     Warning as WarningIcon,
 } from '@mui/icons-material';
-import { User, Car, MaintenanceRecord, Project } from '../types';
-import { firestoreUsers, firestoreCars, firestoreMaintenance, firestoreProjects } from '../services/firestore';
-import { auth } from '../services/firebase';
+import { User } from '../types';
+import { firestoreUsers } from '../services/firestore';
+import { useCars } from '../hooks/useCars';
+import { useProjects } from '../hooks/useProjects';
+import { useMaintenance } from '../hooks/useMaintenance';
+import { useUsers } from '../hooks/useUsers';
+import { useAuth } from '../context/AuthContext';
 import StorageStatusIndicator from '../components/StorageStatusIndicator';
 
 // Check if Firebase is properly configured
 const isFirebaseConfigured = () => {
     try {
-        const config = auth.app.options;
-        return config.apiKey !== "AIzaSyDemoKey-Replace-With-Your-Actual-Key" &&
-            config.projectId !== "car-tracker-demo" &&
-            config.apiKey &&
-            config.projectId;
+        // This check is handled by hooks now
+        return true;
     } catch {
         return false;
     }
@@ -66,86 +68,97 @@ interface UserWithStats extends User {
 }
 
 const AdminDashboard: React.FC = () => {
-    const [stats, setStats] = useState<AdminStats>({
-        totalUsers: 0,
-        totalCars: 0,
-        totalMaintenanceRecords: 0,
-        totalProjects: 0,
-        recentUsers: [],
-    });
+    const { user } = useAuth();
+    const { cars, loading: carsLoading } = useCars();
+    const { projects, loading: projectsLoading } = useProjects();
+    const { maintenance, loading: maintenanceLoading } = useMaintenance();
+    const { users, loading: usersLoading, deleteUser } = useUsers();
+
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [deleteError, setDeleteError] = useState('');
 
-    useEffect(() => {
-        loadAdminStats();
-    }, []);
+    // Calculate stats from hook data
+    const stats: AdminStats = React.useMemo(() => {
+        console.log('🔧 AdminDashboard: Calculating stats with data:', {
+            usersCount: users.length,
+            carsCount: cars.length,
+            projectsCount: projects.length,
+            maintenanceCount: maintenance.length,
+            currentUser: user?.email,
+            isAdmin: user?.isAdmin
+        });
 
-    const loadAdminStats = async () => {
-        try {
-            if (!isFirebaseConfigured()) {
-                console.error('❌ Firebase not configured properly');
-                return;
-            }
+        // Filter out admin users
+        const regularUsers = users.filter((u: User) => !u.isAdmin);
+        console.log('🔧 AdminDashboard: Regular users (non-admin):', regularUsers.length);
 
-            // Use Firestore for all data
-            console.log('🔥 Loading admin stats from Firestore');
+        // Get user stats for recent users
+        const recentUsersWithStats: UserWithStats[] = regularUsers
+            .sort((a: User, b: User) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5)
+            .map((userItem: User) => {
+                // Count cars, projects, and maintenance for this user
+                const userCars = cars.filter(car => car.userId === userItem.id);
+                const userProjects = projects.filter(project => project.userId === userItem.id);
+                const userMaintenance = maintenance.filter(m => m.userId === userItem.id);
 
-            try {
-                const [users, totalCars, totalMaintenance, totalProjects] = await Promise.all([
-                    firestoreUsers.getAll(),
-                    firestoreCars.getTotalCars(),
-                    firestoreMaintenance.getTotalMaintenance(),
-                    firestoreProjects.getTotalProjects()
-                ]);
+                return {
+                    ...userItem,
+                    carCount: userCars.length,
+                    maintenanceCount: userMaintenance.length,
+                    projectCount: userProjects.length
+                };
+            });
 
-                // Filter out admin users and get recent users
-                const regularUsers = users.filter(user => !user.isAdmin);
+        const calculatedStats = {
+            totalUsers: regularUsers.length,
+            totalCars: cars.length,
+            totalMaintenanceRecords: maintenance.length,
+            totalProjects: projects.length,
+            recentUsers: recentUsersWithStats,
+        };
 
-                // Get user stats for recent users
-                const recentUsersWithStats = await Promise.all(
-                    regularUsers
-                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                        .slice(0, 5)
-                        .map(async (user) => {
-                            const [carCount, maintenanceCount, projectCount] = await Promise.all([
-                                firestoreCars.getUserCarCount(user.id),
-                                firestoreMaintenance.getUserMaintenanceCount(user.id),
-                                firestoreProjects.getUserProjectCount(user.id)
-                            ]);
+        console.log('🔧 AdminDashboard: Calculated stats:', calculatedStats);
+        return calculatedStats;
+    }, [users, cars, projects, maintenance]);
 
-                            return {
-                                ...user,
-                                carCount,
-                                maintenanceCount,
-                                projectCount
-                            };
-                        })
-                );
+    // Loading state
+    const isLoading = carsLoading || projectsLoading || maintenanceLoading || usersLoading;
 
-                setStats({
-                    totalUsers: regularUsers.length,
-                    totalCars,
-                    totalMaintenanceRecords: totalMaintenance,
-                    totalProjects,
-                    recentUsers: recentUsersWithStats,
-                });
-                console.log('✅ Admin stats loaded from Firestore:', {
-                    totalUsers: regularUsers.length,
-                    totalCars,
-                    totalMaintenance,
-                    totalProjects
-                });
-            } catch (firestoreError) {
-                console.error('❌ Error loading from Firestore:', firestoreError);
-            }
-        } catch (error) {
-            console.error('Error loading admin stats:', error);
-        }
-    };
+    console.log('🔧 AdminDashboard: Loading states:', {
+        carsLoading,
+        projectsLoading,
+        maintenanceLoading,
+        usersLoading,
+        isLoading,
+        userIsAdmin: user?.isAdmin,
+        userEmail: user?.email
+    });
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
+    // Check if user is admin
+    if (!user?.isAdmin) {
+        return (
+            <Box sx={{ pt: 10, pb: 4 }}>
+                <Container maxWidth="lg">
+                    <Alert severity="error">
+                        Access denied. Admin privileges required.
+                    </Alert>
+                </Container>
+            </Box>
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <Box sx={{ pt: 10, pb: 4, display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress size={60} sx={{ color: '#ff4500' }} />
+            </Box>
+        );
+    }
+
+    const formatDate = (date: Date) => {
+        return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -154,12 +167,12 @@ const AdminDashboard: React.FC = () => {
 
     const getUserCarsCount = (userId: string) => {
         // Find the user in recentUsers and return their car count
-        const user = stats.recentUsers.find(u => u.id === userId);
-        return user?.carCount || 0;
+        const userItem = stats.recentUsers.find(u => u.id === userId);
+        return userItem?.carCount || 0;
     };
 
-    const handleDeleteUser = (user: User) => {
-        setUserToDelete(user);
+    const handleDeleteUser = (userItem: User) => {
+        setUserToDelete(userItem);
         setDeleteDialogOpen(true);
         setDeleteError('');
     };
@@ -168,18 +181,12 @@ const AdminDashboard: React.FC = () => {
         if (!userToDelete) return;
 
         try {
-            if (!isFirebaseConfigured()) {
-                throw new Error('Firebase not configured properly');
-            }
+            console.log('🗑️ Deleting user:', userToDelete.email);
+            await deleteUser(userToDelete.id);
 
-            // Use Firestore for all data
-            console.log('� Deleting user from Firestore:', userToDelete.email);
-            await firestoreUsers.deleteUser(userToDelete.id);
-
-            // Close dialog and refresh stats
+            // Close dialog
             setDeleteDialogOpen(false);
             setUserToDelete(null);
-            loadAdminStats();
 
         } catch (error) {
             console.error('Error deleting user:', error);
@@ -398,7 +405,7 @@ const AdminDashboard: React.FC = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <Typography variant="body2" color="text.secondary">
-                                                    {formatDate(user.createdAt.toString())}
+                                                    {formatDate(new Date(user.createdAt))}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>

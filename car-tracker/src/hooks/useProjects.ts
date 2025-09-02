@@ -40,14 +40,18 @@ export const useProjects = () => {
         // Use Firestore for all data
         console.log('🔥 Using Firebase Firestore for projects data');
 
-        // Set up real-time listener for user's projects
-        const unsubscribe = firestoreListeners.subscribeToUserProjects(
-            user.id,
-            (firestoreProjects) => {
+        // Set up real-time listener based on user role
+        const unsubscribe = user.isAdmin
+            ? firestoreListeners.subscribeToAllProjects((firestoreProjects) => {
+                console.log('🔧 Admin: Loading ALL projects from all users:', firestoreProjects.length);
                 setProjects(firestoreProjects);
                 setLoading(false);
-            }
-        );
+            })
+            : firestoreListeners.subscribeToUserProjects(user.id, (firestoreProjects) => {
+                console.log('👤 User: Loading projects for user:', user.id, firestoreProjects.length);
+                setProjects(firestoreProjects);
+                setLoading(false);
+            });
 
         // Cleanup listener on unmount
         return () => unsubscribe();
