@@ -4,9 +4,9 @@ import { createTheme } from "@mui/material/styles";
 const colors = {
   // Core console colors
   black: "#000000",
-  darkGray: "#1a1a1a",
-  mediumGray: "#404040",
-  lightGray: "#707070",
+  darkGray: "#0f0f0f",
+  mediumGray: "#2a2a2a",
+  lightGray: "#606060",
   white: "#f0f0f0",
 
   // Dark blue and pink theme colors
@@ -17,8 +17,8 @@ const colors = {
   yellow: "#e6e600", // Keep yellow for warnings
 
   // Background colors
-  consoleBlack: "#0c0c0c",
-  consoleDark: "#1a1a1a",
+  consoleBlack: "#050505",
+  consoleDark: "#0f0f0f",
 
   // Muted versions for UI
   blueMuted: "#3366cc",
@@ -138,7 +138,7 @@ export const theme = createTheme({
     },
   },
   shape: {
-    borderRadius: 2, // Minimal corner rounding
+    borderRadius: 6, // Increased corner rounding
   },
   spacing: 8, // Standard spacing
   components: {
@@ -176,7 +176,9 @@ export const theme = createTheme({
           borderBottom: `3px solid ${colors.blue}`,
           boxShadow: `0 4px 20px rgba(74, 144, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.3)`,
           backdropFilter: "blur(10px)",
-          position: "relative",
+          position: "sticky",
+          top: 0,
+          zIndex: 1100,
           "&::after": {
             content: '""',
             position: "absolute",
@@ -193,10 +195,10 @@ export const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          background: `rgba(26, 26, 26, 0.4)`,
-          border: `1px solid rgba(64, 64, 64, 0.5)`,
-          borderRadius: 4,
-          boxShadow: `0 2px 8px rgba(0, 0, 0, 0.2)`,
+          background: `rgba(15, 15, 15, 0.6)`,
+          border: `1px solid rgba(74, 144, 255, 0.2)`,
+          borderRadius: 8,
+          boxShadow: `0 2px 8px rgba(0, 0, 0, 0.3)`,
           backdropFilter: "blur(8px)",
         },
       },
@@ -204,10 +206,10 @@ export const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          background: `rgba(26, 26, 26, 0.3)`,
-          border: `1px solid rgba(64, 64, 64, 0.4)`,
-          borderRadius: 3,
-          boxShadow: `0 1px 6px rgba(0, 0, 0, 0.15)`,
+          background: `rgba(15, 15, 15, 0.5)`,
+          border: `1px solid rgba(74, 144, 255, 0.15)`,
+          borderRadius: 6,
+          boxShadow: `0 1px 6px rgba(0, 0, 0, 0.2)`,
           backdropFilter: "blur(6px)",
         },
       },
@@ -215,7 +217,7 @@ export const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 3,
+          borderRadius: 6,
           fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
           fontWeight: 600,
           letterSpacing: "0.02em",
@@ -272,12 +274,12 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           "& .MuiOutlinedInput-root": {
-            borderRadius: 3,
+            borderRadius: 6,
             fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
             background: `rgba(0, 255, 0, 0.02)`,
             transition: "all 0.3s ease",
             "& fieldset": {
-              borderColor: colors.mediumGray,
+              borderColor: `rgba(74, 144, 255, 0.3)`,
               borderWidth: "2px",
             },
             "&:hover fieldset": {
@@ -306,7 +308,7 @@ export const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 4,
+          borderRadius: 8,
           fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
           fontWeight: 600,
           letterSpacing: "0.02em",
@@ -326,7 +328,7 @@ export const theme = createTheme({
     MuiAlert: {
       styleOverrides: {
         root: {
-          borderRadius: 3,
+          borderRadius: 6,
           fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
           border: "2px solid",
           backdropFilter: "blur(8px)",
@@ -356,12 +358,12 @@ export const theme = createTheme({
     MuiLinearProgress: {
       styleOverrides: {
         root: {
-          borderRadius: 2,
+          borderRadius: 4,
           height: 8,
           background: colors.darkGray,
         },
         bar: {
-          borderRadius: 2,
+          borderRadius: 4,
           background: colors.blue,
         },
       },
@@ -376,7 +378,7 @@ export const theme = createTheme({
     MuiDivider: {
       styleOverrides: {
         root: {
-          borderColor: colors.mediumGray,
+          borderColor: `rgba(74, 144, 255, 0.25)`,
           borderWidth: "1px",
         },
       },
