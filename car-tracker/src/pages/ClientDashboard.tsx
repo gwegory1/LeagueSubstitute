@@ -7,6 +7,7 @@ import BuildIcon from "@mui/icons-material/Build";
 import EventIcon from "@mui/icons-material/Event";
 import SpeedIcon from "@mui/icons-material/Speed";
 import TimelapseIcon from "@mui/icons-material/Timelapse";
+import PeopleIcon from "@mui/icons-material/People";
 
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -29,6 +30,7 @@ import { useCars } from '../hooks/useCars';
 import { useEvents } from '../hooks/useEvents';
 import { useProjects } from '../hooks/useProjects';
 import { useMaintenance } from '../hooks/useMaintenance';
+import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../context/AuthContext';
 
 // Simplified Animation variants
@@ -67,6 +69,7 @@ const ClientDashboard: React.FC = () => {
     const { events, getUpcomingEvents, loading: eventsLoading } = useEvents();
     const { projects, loading: projectsLoading } = useProjects();
     const { maintenance, loading: maintenanceLoading } = useMaintenance();
+    const { users, loading: usersLoading } = useUsers();
 
     const [loading, setLoading] = useState(true);
 
@@ -86,13 +89,19 @@ const ClientDashboard: React.FC = () => {
             m.nextDueDate <= thirtyDaysFromNow
         ).length;
 
+        // Calculate admin-specific metrics
+        const totalUsers = user?.isAdmin ? users.length : 0;
+        const adminNote = user?.isAdmin ? ' (All Users)' : '';
+
         return {
             totalCars,
             activeProjects,
             upcomingMaintenances,
-            totalMileage
+            totalMileage,
+            totalUsers,
+            adminNote
         };
-    }, [cars, projects, maintenance]);
+    }, [cars, projects, maintenance, user?.isAdmin, users]);
 
     // Get the most recently updated car
     const recentCar = useMemo(() => {
@@ -170,10 +179,10 @@ const ClientDashboard: React.FC = () => {
 
     useEffect(() => {
         // Set loading to false when all data is loaded
-        if (!carsLoading && !eventsLoading && !projectsLoading && !maintenanceLoading) {
+        if (!carsLoading && !eventsLoading && !projectsLoading && !maintenanceLoading && !usersLoading) {
             setLoading(false);
         }
-    }, [carsLoading, eventsLoading, projectsLoading, maintenanceLoading]);
+    }, [carsLoading, eventsLoading, projectsLoading, maintenanceLoading, usersLoading]);
 
     if (loading) {
         return (
@@ -209,7 +218,7 @@ const ClientDashboard: React.FC = () => {
                     </Typography>
 
                     <Typography variant="h4" gutterBottom sx={{ mb: 2 }}>
-                        Dashboard Overview
+                        {user?.isAdmin ? '🔧 Admin Dashboard - System Overview' : 'Dashboard Overview'}
                     </Typography>
                 </motion.div>
 
@@ -218,12 +227,13 @@ const ClientDashboard: React.FC = () => {
                     {/* Left Column - Main Stats & Car */}
                     <Box sx={{ flex: { xs: 1, lg: 2 } }}>
                         {/* Stats Cards Row */}
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: user?.isAdmin ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
                             {[
-                                { icon: DirectionsCarIcon, title: 'Total Cars', value: metrics.totalCars, color: 'primary.main' },
-                                { icon: BuildIcon, title: 'Active Projects', value: metrics.activeProjects, color: 'secondary.main' },
-                                { icon: EventIcon, title: 'Upcoming Maintenance', value: metrics.upcomingMaintenances, color: 'warning.main' },
-                                { icon: SpeedIcon, title: 'Total Mileage', value: `${metrics.totalMileage.toLocaleString()} km`, color: 'success.main' }
+                                { icon: DirectionsCarIcon, title: `Total Cars${metrics.adminNote}`, value: metrics.totalCars, color: 'primary.main' },
+                                { icon: BuildIcon, title: `Active Projects${metrics.adminNote}`, value: metrics.activeProjects, color: 'secondary.main' },
+                                { icon: EventIcon, title: `Upcoming Maintenance${metrics.adminNote}`, value: metrics.upcomingMaintenances, color: 'warning.main' },
+                                { icon: SpeedIcon, title: `Total Mileage${metrics.adminNote}`, value: `${metrics.totalMileage.toLocaleString()} km`, color: 'success.main' },
+                                ...(user?.isAdmin ? [{ icon: PeopleIcon, title: 'Total Users', value: metrics.totalUsers, color: 'info.main' }] : [])
                             ].map((stat, index) => (
                                 <motion.div
                                     key={index}
@@ -668,6 +678,108 @@ const ClientDashboard: React.FC = () => {
                                 </CardContent>
                             </Card>
                         </motion.div>
+
+                        {/* Admin Users List */}
+                        {user?.isAdmin && (
+                            <motion.div variants={itemVariants} whileHover={cardHoverVariants.hover}>
+                                <Card sx={{
+                                    borderRadius: 2,
+                                    mt: 3,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        transform: 'translateY(-2px)',
+                                        boxShadow: 3,
+                                    }
+                                }}>
+                                    <CardContent>
+                                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                            <PeopleIcon color="info" />
+                                            Registered Users
+                                            <Chip
+                                                label={`${users.length} users`}
+                                                size="small"
+                                                color="info"
+                                                variant="outlined"
+                                                sx={{ ml: 'auto' }}
+                                            />
+                                        </Typography>
+
+                                        {usersLoading ? (
+                                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                                                <CircularProgress size={24} />
+                                            </Box>
+                                        ) : (
+                                            <List dense sx={{ mt: 0, maxHeight: 300, overflow: 'auto' }}>
+                                                {users.slice(0, 10).map((userItem, index) => (
+                                                    <React.Fragment key={userItem.id}>
+                                                        <ListItem sx={{ px: 0, py: 1 }}>
+                                                            <ListItemIcon sx={{ minWidth: 40 }}>
+                                                                <Avatar
+                                                                    sx={{
+                                                                        width: 32,
+                                                                        height: 32,
+                                                                        bgcolor: userItem.isAdmin ? 'error.main' : 'primary.main',
+                                                                        fontSize: '0.8rem'
+                                                                    }}
+                                                                >
+                                                                    {userItem.displayName ? userItem.displayName.charAt(0).toUpperCase() : userItem.email.charAt(0).toUpperCase()}
+                                                                </Avatar>
+                                                            </ListItemIcon>
+                                                            <ListItemText
+                                                                primary={
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                                                            {userItem.displayName || 'No Name'}
+                                                                        </Typography>
+                                                                        {userItem.isAdmin && (
+                                                                            <Chip
+                                                                                label="ADMIN"
+                                                                                size="small"
+                                                                                color="error"
+                                                                                sx={{ fontSize: '0.65rem', height: 20, fontWeight: 'bold' }}
+                                                                            />
+                                                                        )}
+                                                                    </Box>
+                                                                }
+                                                                secondary={
+                                                                    <Box>
+                                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                                                            {userItem.email}
+                                                                        </Typography>
+                                                                        <Typography variant="caption" color="primary" sx={{ display: 'block' }}>
+                                                                            Joined: {userItem.createdAt.toLocaleDateString()}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                }
+                                                            />
+                                                        </ListItem>
+                                                        {index < Math.min(users.length - 1, 9) && <Divider />}
+                                                    </React.Fragment>
+                                                ))}
+                                                {users.length === 0 && (
+                                                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                                                        No users found
+                                                    </Typography>
+                                                )}
+                                            </List>
+                                        )}
+
+                                        {users.length > 10 && (
+                                            <Box sx={{ mt: 2, textAlign: 'center' }}>
+                                                <Chip
+                                                    label={`+${users.length - 10} more users`}
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
+                                                    sx={{ cursor: 'pointer' }}
+                                                />
+                                            </Box>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        )}
                     </Box>
                 </Box>
             </motion.div>

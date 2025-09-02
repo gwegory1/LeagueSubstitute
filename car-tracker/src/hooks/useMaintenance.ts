@@ -40,14 +40,18 @@ export const useMaintenance = () => {
         // Use Firestore for all data
         console.log('🔥 Using Firebase Firestore for maintenance data');
 
-        // Set up real-time listener for user's maintenance records
-        const unsubscribe = firestoreListeners.subscribeToUserMaintenance(
-            user.id,
-            (firestoreMaintenance) => {
+        // Set up real-time listener based on user role
+        const unsubscribe = user.isAdmin
+            ? firestoreListeners.subscribeToAllMaintenance((firestoreMaintenance) => {
+                console.log('🔧 Admin: Loading ALL maintenance from all users:', firestoreMaintenance.length);
                 setMaintenance(firestoreMaintenance);
                 setLoading(false);
-            }
-        );
+            })
+            : firestoreListeners.subscribeToUserMaintenance(user.id, (firestoreMaintenance) => {
+                console.log('👤 User: Loading maintenance for user:', user.id, firestoreMaintenance.length);
+                setMaintenance(firestoreMaintenance);
+                setLoading(false);
+            });
 
         // Cleanup listener on unmount
         return () => unsubscribe();

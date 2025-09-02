@@ -21,7 +21,6 @@ import {
     AccountCircle,
     Event,
     Dashboard,
-    Visibility as OverviewIcon,
     Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -58,12 +57,6 @@ const AdminNavigation: React.FC = () => {
 
     const handleDashboardClick = () => {
         navigate('/admin');
-        handleUserMenuClose();
-        setMobileMenuOpen(false);
-    };
-
-    const handleOverviewClick = () => {
-        navigate('/overview');
         handleUserMenuClose();
         setMobileMenuOpen(false);
     };
@@ -189,13 +182,7 @@ const AdminNavigation: React.FC = () => {
                     <ListItemIcon>
                         <AdminIcon fontSize="small" />
                     </ListItemIcon>
-                    Dashboard/
-                </MenuItem>
-                <MenuItem onClick={handleOverviewClick}>
-                    <ListItemIcon>
-                        <OverviewIcon fontSize="small" />
-                    </ListItemIcon>
-                    Client Overview
+                    Dashboard
                 </MenuItem>
                 <MenuItem onClick={handleProfileClick}>
                     <ListItemIcon>
@@ -251,14 +238,6 @@ const AdminNavigation: React.FC = () => {
                             </ListItemButton>
                         </ListItem>
                         <Divider sx={{ my: 1 }} />
-                        <ListItem disablePadding>
-                            <ListItemButton onClick={handleOverviewClick}>
-                                <ListItemIcon>
-                                    <OverviewIcon sx={{ color: '#ff4500' }} />
-                                </ListItemIcon>
-                                <ListItemText primary="Client Overview" />
-                            </ListItemButton>
-                        </ListItem>
                         <ListItem disablePadding>
                             <ListItemButton onClick={handleProfileClick}>
                                 <ListItemIcon>

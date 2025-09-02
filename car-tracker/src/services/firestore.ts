@@ -82,6 +82,20 @@ export const firestoreCars = {
         })) as Car[];
     },
 
+    // Get all cars (admin only)
+    async getAllCars(): Promise<Car[]> {
+        const carsRef = collection(db, 'cars');
+        const q = query(carsRef, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: convertTimestamp(doc.data().createdAt),
+            updatedAt: convertTimestamp(doc.data().updatedAt)
+        })) as Car[];
+    },
+
     // Add new car
     async addCar(userId: string, carData: Omit<Car, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<string> {
         const carsRef = collection(db, 'cars');
@@ -135,6 +149,22 @@ export const firestoreMaintenance = {
     async getUserMaintenance(userId: string): Promise<MaintenanceRecord[]> {
         const maintenanceRef = collection(db, 'maintenance');
         const q = query(maintenanceRef, where('userId', '==', userId), orderBy('date', 'desc'));
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: convertTimestamp(doc.data().date),
+            nextDueDate: doc.data().nextDueDate ? convertTimestamp(doc.data().nextDueDate) : undefined,
+            createdAt: convertTimestamp(doc.data().createdAt),
+            updatedAt: convertTimestamp(doc.data().updatedAt)
+        })) as MaintenanceRecord[];
+    },
+
+    // Get all maintenance records (admin only)
+    async getAllMaintenance(): Promise<MaintenanceRecord[]> {
+        const maintenanceRef = collection(db, 'maintenance');
+        const q = query(maintenanceRef, orderBy('date', 'desc'));
         const snapshot = await getDocs(q);
 
         return snapshot.docs.map(doc => ({
@@ -224,6 +254,23 @@ export const firestoreProjects = {
     async getUserProjects(userId: string): Promise<Project[]> {
         const projectsRef = collection(db, 'projects');
         const q = query(projectsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            startDate: doc.data().startDate ? convertTimestamp(doc.data().startDate) : undefined,
+            targetDate: doc.data().targetDate ? convertTimestamp(doc.data().targetDate) : undefined,
+            completedDate: doc.data().completedDate ? convertTimestamp(doc.data().completedDate) : undefined,
+            createdAt: convertTimestamp(doc.data().createdAt),
+            updatedAt: convertTimestamp(doc.data().updatedAt)
+        })) as Project[];
+    },
+
+    // Get all projects (admin only)
+    async getAllProjects(): Promise<Project[]> {
+        const projectsRef = collection(db, 'projects');
+        const q = query(projectsRef, orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
 
         return snapshot.docs.map(doc => ({
@@ -336,6 +383,24 @@ export const firestoreListeners = {
         });
     },
 
+    // Listen to all cars in real-time (admin only)
+    subscribeToAllCars(callback: (cars: Car[]) => void) {
+        const carsRef = collection(db, 'cars');
+
+        return onSnapshot(carsRef, (snapshot) => {
+            const cars = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: convertTimestamp(doc.data().createdAt),
+                updatedAt: convertTimestamp(doc.data().updatedAt)
+            })) as Car[];
+
+            // Sort in memory instead of in query
+            cars.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+            callback(cars);
+        });
+    },
+
     // Listen to user's maintenance records in real-time
     subscribeToUserMaintenance(userId: string, callback: (maintenance: MaintenanceRecord[]) => void) {
         const maintenanceRef = collection(db, 'maintenance');
@@ -358,6 +423,26 @@ export const firestoreListeners = {
         });
     },
 
+    // Listen to all maintenance records in real-time (admin only)
+    subscribeToAllMaintenance(callback: (maintenance: MaintenanceRecord[]) => void) {
+        const maintenanceRef = collection(db, 'maintenance');
+
+        return onSnapshot(maintenanceRef, (snapshot) => {
+            const maintenance = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                date: convertTimestamp(doc.data().date),
+                nextDueDate: doc.data().nextDueDate ? convertTimestamp(doc.data().nextDueDate) : undefined,
+                createdAt: convertTimestamp(doc.data().createdAt),
+                updatedAt: convertTimestamp(doc.data().updatedAt)
+            })) as MaintenanceRecord[];
+
+            // Sort in memory instead of in query
+            maintenance.sort((a, b) => b.date.getTime() - a.date.getTime());
+            callback(maintenance);
+        });
+    },
+
     // Listen to user's projects in real-time
     subscribeToUserProjects(userId: string, callback: (projects: Project[]) => void) {
         const projectsRef = collection(db, 'projects');
@@ -365,6 +450,27 @@ export const firestoreListeners = {
         const q = query(projectsRef, where('userId', '==', userId));
 
         return onSnapshot(q, (snapshot) => {
+            const projects = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                startDate: doc.data().startDate ? convertTimestamp(doc.data().startDate) : undefined,
+                targetDate: doc.data().targetDate ? convertTimestamp(doc.data().targetDate) : undefined,
+                completedDate: doc.data().completedDate ? convertTimestamp(doc.data().completedDate) : undefined,
+                createdAt: convertTimestamp(doc.data().createdAt),
+                updatedAt: convertTimestamp(doc.data().updatedAt)
+            })) as Project[];
+
+            // Sort in memory instead of in query
+            projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+            callback(projects);
+        });
+    },
+
+    // Listen to all projects in real-time (admin only)
+    subscribeToAllProjects(callback: (projects: Project[]) => void) {
+        const projectsRef = collection(db, 'projects');
+
+        return onSnapshot(projectsRef, (snapshot) => {
             const projects = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
